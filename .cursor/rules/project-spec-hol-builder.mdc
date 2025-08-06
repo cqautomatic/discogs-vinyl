@@ -1,0 +1,110 @@
+---
+alwaysApply: false
+---
+
+
+# Snowflake Quickstart Lab Generator
+
+## Your Role
+Transform official Snowflake quickstarts into company-branded 15-minute hands-on labs.
+
+## Input & Company Extraction
+1. **Snowflake quickstart URL** - Follow structure exactly
+2. **Company context** - Extract from "for [Company]" or "called [Company]"  
+3. Brand entire lab with company name and business context
+
+## Output Structure & Data Strategy
+
+### Cortex Search Labs
+```
+{company_name}_cortex_search_lab/
+├── README.md                        # "{Company} Cortex Search Lab"
+├── setup.sql                        # Database + stage only
+├── streamlit_app.py                 # "{Company} Search Assistant"
+└── sample_docs/                     # 3-5 text files (REQUIRED)
+    └── *.txt                        # Company docs, policies, FAQs
+```
+
+### Cortex Analyst Labs
+```
+{company_name}_cortex_analyst_lab/
+├── README.md                        # "{Company} Cortex Analyst Lab"
+├── setup.sql                        # Database + INSERT statements (REQUIRED)
+├── streamlit_app.py                 # "{Company} Analytics Assistant"  
+└── semantic_model.yaml              # Analytics model (REQUIRED)
+```
+
+## Data Rules (ENFORCE STRICTLY)
+- **Search Labs**: Text files only → User uploads to stage
+- **Analyst Labs**: INSERT statements in setup.sql → One-click execution
+- **NEVER**: CSV files for Analyst labs (breaks 15-minute rule)
+- **NEVER**: Manual uploads for structured data
+
+## Branding Requirements
+- **Directory**: `{company_name}_{feature}_lab/` (lowercase)
+- **Database**: `{company_name}_{feature}_demo`
+- **Sample questions**: Reference company directly ("What Tesla models...")
+- **Data entities**: Industry-relevant (Amazon→products, Ericsson→cellular)
+
+## Constraints
+- **15-minute setup** - Quick, immediate results
+- **Small datasets** - 500-2000 records max for demos
+- **Follow original structure** - Same steps, only change business context
+
+## Examples
+**"HOL for Boost"** → `boost_cortex_search_lab/` + `sample_docs/` + stage setup
+**"Analyst lab for Ericsson"** → `ericsson_cortex_analyst_lab/` + INSERT statements + semantic model 
+
+
+# Snowflake Quickstart Lab Generator
+
+## Your Role
+Transform official Snowflake quickstarts into company-branded 15-minute hands-on labs.
+
+## Input & Company Extraction
+1. **Snowflake quickstart URL** - Follow structure exactly
+2. **Company context** - Extract from "for [Company]" or "called [Company]"  
+3. Brand entire lab with company name and business context
+
+## Output Structure & Data Strategy
+
+### Cortex Search Labs
+```
+{company_name}_cortex_search_lab/
+├── README.md                        # "{Company} Cortex Search Lab"
+├── setup.sql                        # Database + stage only
+├── streamlit_app.py                 # "{Company} Search Assistant"
+└── sample_docs/                     # 3-5 text files (REQUIRED)
+    └── *.txt                        # Company docs, policies, FAQs
+```
+
+### Cortex Analyst Labs
+```
+{company_name}_cortex_analyst_lab/
+├── README.md                        # "{Company} Cortex Analyst Lab"
+├── setup.sql                        # Database + INSERT statements (REQUIRED)
+├── streamlit_app.py                 # "{Company} Analytics Assistant"  
+└── semantic_model.yaml              # Analytics model (REQUIRED)
+```
+
+## Data Rules (ENFORCE STRICTLY)
+- **Search Labs**: Text files only → User uploads to stage
+- **Analyst Labs**: INSERT statements in setup.sql → One-click execution
+- **NEVER**: CSV files for Analyst labs (breaks 15-minute rule)
+- **NEVER**: Manual uploads for structured data
+
+## Branding Requirements
+- **Directory**: `{company_name}_{feature}_lab/` (lowercase)
+- **Database**: `{company_name}_{feature}_demo`
+- **Sample questions**: Reference company directly ("What Tesla models...")
+- **Data entities**: Industry-relevant (Amazon→products, Ericsson→cellular)
+
+## Constraints
+- **15-minute setup** - Quick, immediate results
+- **Small datasets** - 500-2000 records max for demos
+- **Follow original structure** - Same steps, only change business context
+
+## Examples
+**"HOL for Boost"** → `boost_cortex_search_lab/` + `sample_docs/` + stage setup
+**"Analyst lab for Ericsson"** → `ericsson_cortex_analyst_lab/` + INSERT statements + semantic model 
+

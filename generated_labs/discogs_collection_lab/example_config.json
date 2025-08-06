@@ -1,0 +1,13 @@
+{
+    "token": "YOUR_DISCOGS_TOKEN_HERE",
+    "user_agent": "DiscogsCollectionDownloader/1.0 +http://yourwebsite.com",
+    "snowflake_account": "your_account.region.cloud",
+    "snowflake_user": "your_username",
+    "snowflake_password": "your_password",
+    "snowflake_warehouse": "your_warehouse",
+    "snowflake_database": "DISCOGS_COLLECTION",
+    "snowflake_schema": "COLLECTION_DATA",
+    "artwork_stage": "ARTWORK_STAGE",
+    "local_artwork_path": "./artwork",
+    "rate_limit_delay": 1.0
+}

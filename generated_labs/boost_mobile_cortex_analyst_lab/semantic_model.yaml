@@ -1,0 +1,51 @@
+description: Semantic model for Boost Mobile sales analytics
+dimensions:
+- name: category
+  type: string
+- name: region
+  type: string
+- name: customer_segment
+  type: string
+- name: product_line
+  type: string
+- name: date
+  type: date
+measures:
+- column: amount
+  description: Total sales amount
+  name: total_amount
+  type: sum
+- column: amount
+  description: Average sales amount
+  name: avg_amount
+  type: average
+- column: id
+  description: Number of sales
+  name: transaction_count
+  type: count
+name: Boost MobileAnalyticsModel
+tables:
+- columns:
+  - description: Sales identifier
+    name: id
+    type: integer
+  - description: Sales date
+    name: date
+    type: date
+  - description: Sales category
+    name: category
+    type: string
+  - description: Sales amount in dollars
+    name: amount
+    type: decimal
+  - description: Geographic region
+    name: region
+    type: string
+  - description: Customer segment classification
+    name: customer_segment
+    type: string
+  - description: Product line category
+    name: product_line
+    type: string
+  description: Boost Mobile sales data
+  name: sales_table
