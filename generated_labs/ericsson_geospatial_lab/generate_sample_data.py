@@ -1,1 +1,0 @@
-# Ericsson Geospatial Data Generator\nprint('Generate sample location data')

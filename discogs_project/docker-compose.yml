@@ -1,0 +1,47 @@
+# Local development only — not intended for production use.
+# Starts PostgreSQL, the Node API, and the React frontend.
+# See docs/local-development.md for full setup instructions.
+# Quick start: make setup && make up
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-discogs_collection}
+      POSTGRES_USER: ${POSTGRES_USER:-discogs_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-discogs_user} -d ${POSTGRES_DB:-discogs_collection}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: apps/local-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  react:
+    build:
+      context: apps/react-frontend
+      args:
+        VITE_API_BASE_URL: ""
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

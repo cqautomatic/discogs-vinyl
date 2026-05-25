@@ -1,0 +1,6 @@
+# Snowflake module requirements (for local Snowpark runs)
+snowflake-snowpark-python>=1.15.0
+streamlit>=1.33.0
+requests>=2.31.0
+pandas>=2.0.0
+plotly>=5.20.0

@@ -1,0 +1,61 @@
+# Discogs Collection Lab Requirements (PostgreSQL Version)
+# Updated for Enhanced Card-Style UI and Remote PostgreSQL Support
+# Install with: pip install -r requirements_updated.txt
+
+# Core dependencies
+requests>=2.31.0
+pandas>=2.3.0
+numpy>=1.24.0
+
+# PostgreSQL connectivity - REQUIRED FOR REMOTE CONNECTIONS
+psycopg2-binary>=2.9.10
+
+# Streamlit for web interface - ENHANCED UI VERSION
+streamlit>=1.48.0
+streamlit-plotly-events>=0.0.6  # For interactive charts with click-through
+
+# Data visualization - CARD-STYLE LAYOUTS
+plotly>=6.3.0
+matplotlib>=3.8.0
+
+# Image processing for album artwork thumbnails
+Pillow>=10.0.0
+
+# Configuration management - REQUIRED FOR REMOTE POSTGRES
+tomli>=2.2.0  # TOML file parsing for .streamlit/secrets.toml
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Date and time utilities
+python-dateutil>=2.8.0
+
+# JSON processing for metadata
+orjson>=3.9.0
+
+# HTTP session management
+requests-cache>=1.1.0
+
+# Progress bars for downloads
+tqdm>=4.65.0
+
+# Logging enhancements
+colorlog>=6.7.0
+
+# Data validation
+pydantic>=2.0.0
+
+# HTTP adapters and retry logic
+urllib3>=2.0.0
+requests-toolbelt>=1.0.0
+
+# Additional UI enhancements
+watchdog>=3.0.0  # File watching for better Streamlit performance
+
+# Database utilities
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Development dependencies (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0

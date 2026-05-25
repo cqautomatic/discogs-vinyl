@@ -1,0 +1,13 @@
+{
+    "token": "MxgSiRPTvDNMHmeFSmVOzZaUfwxlQrvBJaZkwnLG",
+    "user_agent": "DiscogsCollectionDownloader/1.0",
+    "postgres_host": "localhost",
+    "postgres_port": 5432,
+    "postgres_user": "discogs_user",
+    "postgres_password": "PG_jofoley927",
+    "postgres_database": "discogs_collection",
+    "postgres_schema": "collection_data",
+    "local_artwork_path": "./artwork",
+    "rate_limit_delay": 1.0
+}
+

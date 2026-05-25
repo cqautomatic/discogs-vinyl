@@ -1,0 +1,7 @@
+# Nightly Discogs Maintenance - runs at 1:00 AM every day  
+# Includes price refresh, materialized views refresh, and email notifications on failure
+# Option 1: Shell script (with venv activation) - RECOMMENDED
+0 1 * * * /Users/joeyfoley/cursor_1/discogs_project/scripts/nightly_maintenance.sh
+
+# Option 2: Direct Python script (with venv python)
+# 0 1 * * * /Users/joeyfoley/cursor_1/discogs_project/apps/postgres/discogs_collection_postgres_lab/discogs/bin/python /Users/joeyfoley/cursor_1/discogs_project/scripts/nightly_refresh.py

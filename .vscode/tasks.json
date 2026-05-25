@@ -1,0 +1,75 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Snowflake: Test Connection",
+            "type": "shell",
+            "command": "python3",
+            "args": ["snowflake_pat_setup.py", "test"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Snowflake: Show Collection Stats",
+            "type": "shell",
+            "command": "python3",
+            "args": ["snowflake_cursor_helper.py", "stats"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Snowflake: List Tables",
+            "type": "shell",
+            "command": "python3",
+            "args": ["snowflake_cursor_helper.py", "tables"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Snowflake: Backup Schema",
+            "type": "shell",
+            "command": "python3",
+            "args": ["snowflake_cursor_helper.py", "backup"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "snowcli: Show Connections",
+            "type": "shell",
+            "command": "snow",
+            "args": ["connection", "list"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
