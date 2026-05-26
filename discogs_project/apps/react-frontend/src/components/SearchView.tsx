@@ -71,7 +71,7 @@ function SearchView() {
             <ReleaseCard
               key={r.release_id}
               release={r}
-              onClick={() => setSelectedReleaseId(r.release_id)}
+              onClick={() => setSelectedReleaseId(r.discogs_id)}
             />
           ))}
         </div>

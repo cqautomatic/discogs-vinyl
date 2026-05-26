@@ -67,7 +67,7 @@ function BrowseView() {
   }
 
   // API returns count of rows fetched (not total matching). Use it to detect last page.
-  const hasMore = resultCount === PAGE_SIZE;
+  const hasMore = resultCount >= PAGE_SIZE;
   const hasPrev = offset > 0;
   const pageNum = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -122,7 +122,7 @@ function BrowseView() {
             <ReleaseCard
               key={r.release_id}
               release={r}
-              onClick={() => setSelectedReleaseId(r.release_id)}
+              onClick={() => setSelectedReleaseId(r.discogs_id)}
             />
           ))}
           {releases.length === 0 && (

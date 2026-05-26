@@ -13,5 +13,5 @@ export const pool = new Pool({
 // Set search_path on every new connection so queries can omit the schema prefix.
 // Using double-quoted identifier to handle names with uppercase or special chars.
 pool.on('connect', (client) => {
-  client.query(`SET search_path TO "${schema}", public`).catch(() => {});
+  client.query(`SET search_path TO "${schema}", public`).catch((err: unknown) => console.error('[db] search_path failed:', err));
 });

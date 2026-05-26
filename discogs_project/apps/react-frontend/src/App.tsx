@@ -107,7 +107,7 @@ function App() {
                 <li key={r.release_id}>
                   <button
                     type="button"
-                    onClick={() => { setSearchReleaseId(r.release_id); setSearchResults([]); setSearchQ(''); }}
+                    onClick={() => { setSearchReleaseId(r.discogs_id); setSearchResults([]); setSearchQ(''); }}
                   >
                     {r.artist} — {r.title} {r.year ? `(${r.year})` : ''}
                   </button>

@@ -148,27 +148,33 @@ const releases: FastifyPluginAsync = async (fastify) => {
     }
 
     // Fetch marketplace / pricing data separately (joined on discogs_id)
-    const statsResult = await pool.query(`
-      SELECT
-        ms.last_sold_date,
-        ms.low_sold_price,
-        ms.high_sold_price,
-        ms.currency      AS ms_currency,
-        ms.as_of         AS marketplace_as_of,
-        rp.num_for_sale,
-        rp.lowest_price,
-        rp.currency      AS rp_currency,
-        rp.last_seen
-      FROM   releases r
-      LEFT JOIN marketplace_stats_dim ms ON ms.discogs_release_id = r.discogs_id
-      LEFT JOIN release_prices        rp ON rp.discogs_release_id = r.discogs_id
-      WHERE  r.discogs_id = $1
-      LIMIT  1
-    `, [id]);
+    let statsRow = {};
+    try {
+      const statsResult = await pool.query(`
+        SELECT
+          ms.last_sold_date,
+          ms.low_sold_price,
+          ms.high_sold_price,
+          ms.currency      AS ms_currency,
+          ms.as_of         AS marketplace_as_of,
+          rp.num_for_sale,
+          rp.lowest_price,
+          rp.currency      AS rp_currency,
+          rp.last_seen
+        FROM   releases r
+        LEFT JOIN marketplace_stats_dim ms ON ms.discogs_release_id = r.discogs_id
+        LEFT JOIN release_prices        rp ON rp.discogs_release_id = r.discogs_id
+        WHERE  r.discogs_id = $1
+        LIMIT  1
+      `, [id]);
+      statsRow = statsResult.rows[0] ?? {};
+    } catch (err) {
+      fastify.log.warn({ err, id }, 'stats query failed — returning release without pricing');
+    }
 
     return reply.send({
       ...releaseResult.rows[0],
-      ...(statsResult.rows[0] ?? {}),
+      ...statsRow,
     });
   });
 };

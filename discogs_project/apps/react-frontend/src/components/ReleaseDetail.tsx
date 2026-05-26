@@ -35,7 +35,7 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
 
   const primary = release?.artwork_files.find((a) => a.image_type === 'primary')
     ?? release?.artwork_files[0];
-  const imageUrl = getArtworkUrl(primary?.local_file_path ?? null) ?? primary?.original_url ?? null;
+  const imageUrl = getArtworkUrl(primary?.thumbnail_file_path ?? primary?.local_file_path ?? null) ?? primary?.original_url ?? null;
 
   // Close on Escape key
   useEffect(() => {
