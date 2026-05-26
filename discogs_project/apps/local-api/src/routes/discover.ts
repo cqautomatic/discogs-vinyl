@@ -131,24 +131,37 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
       if (style) params.set('style', style);
       if (genre) params.set('genre', genre);
 
-      const [data, { ownedIds, wantIds }] = await Promise.all([
-        discogsGet(`https://api.discogs.com/database/search?${params}`) as Promise<{
-          results?: {
-            id: number; title: string; year?: number;
-            label?: string[]; format?: string[];
-            genre?: string[]; style?: string[];
-            country?: string; cover_image?: string; thumb?: string;
-            community?: { have?: number; want?: number };
-          }[];
-          pagination?: { items: number };
-        }>,
-        getOwnedAndWanted(),
-      ]);
+      let data: {
+        results?: {
+          id: number; title: string; year?: number;
+          label?: string[]; format?: string[];
+          genre?: string[]; style?: string[];
+          country?: string; cover_image?: string; thumb?: string;
+          community?: { have?: number; want?: number };
+        }[];
+        pagination?: { items: number };
+      };
+
+      try {
+        data = await discogsGet(`https://api.discogs.com/database/search?${params}`) as typeof data;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        fastify.log.warn({ err }, 'Discogs API error in /discover/style');
+        const isRateLimit = msg.includes('429');
+        return reply.status(503).send({
+          error: isRateLimit
+            ? 'Discogs rate limit hit — wait a few seconds and try again.'
+            : 'Discogs API unavailable — try again in a moment.',
+          detail: msg,
+        });
+      }
+
+      const { ownedIds, wantIds } = await getOwnedAndWanted();
 
       const results = (data.results ?? []).map((r) => ({
         id:            r.id,
         title:         r.title,
-        year:          r.year ?? null,
+        year:          r.year != null ? Number(r.year) : null,
         label:         (r.label ?? [])[0] ?? null,
         format:        (r.format ?? [])[0] ?? null,
         genres:        r.genre  ?? [],
@@ -323,16 +336,28 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Invalid list ID' });
       }
 
-      const [listData, { ownedIds, wantIds }] = await Promise.all([
-        discogsGet(`https://api.discogs.com/lists/${listId}`) as Promise<{
-          id: number; name: string; description?: string;
-          items?: {
-            id: number; display_title?: string; title?: string;
-            image_url?: string; uri?: string; type?: string; comment?: string;
-          }[];
-        }>,
-        getOwnedAndWanted(),
-      ]);
+      type ListData = {
+        id: number; name: string; description?: string;
+        items?: {
+          id: number; display_title?: string; title?: string;
+          image_url?: string; uri?: string; type?: string; comment?: string;
+        }[];
+      };
+      let listData: ListData;
+      try {
+        listData = await discogsGet(`https://api.discogs.com/lists/${listId}`) as ListData;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        fastify.log.warn({ err }, `Discogs API error loading list ${listId}`);
+        if (msg.includes('404')) {
+          return reply.status(404).send({ error: `List ${listId} not found on Discogs.` });
+        }
+        return reply.status(503).send({
+          error: 'Discogs API unavailable — try again in a moment.',
+          detail: msg,
+        });
+      }
+      const { ownedIds, wantIds } = await getOwnedAndWanted();
 
       const items = (listData.items ?? []).map((item) => ({
         id:      item.id,

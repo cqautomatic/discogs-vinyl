@@ -33,7 +33,13 @@ const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, init);
   if (!res.ok) {
-    throw new Error(`API ${res.status}: ${res.statusText} — ${path}`);
+    // Try to surface the API's own error message if available
+    let detail = '';
+    try {
+      const body = await res.json() as { error?: string; message?: string };
+      detail = body.error ?? body.message ?? '';
+    } catch { /* ignore parse failure */ }
+    throw new Error(detail || `API ${res.status}: ${res.statusText} — ${path}`);
   }
   return res.json() as Promise<T>;
 }
