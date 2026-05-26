@@ -133,3 +133,7 @@ export function getArtworkUrl(localFilePath: string | null): string | null {
   if (!filename) return null;
   return `${API_BASE}/artwork/${filename}`;
 }
+
+export function syncNewReleases(): Promise<{ ok: boolean; message: string }> {
+  return fetchJSON('/api/new-releases/sync', { method: 'POST' });
+}

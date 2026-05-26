@@ -1,30 +1,62 @@
-import { useState, useEffect } from 'react';
-import { getNewReleases } from '../api';
+import { useState, useEffect, useCallback } from 'react';
+import { getNewReleases, syncNewReleases } from '../api';
 import type { NewRelease } from '../types';
 import ExternalLinks from './ExternalLinks';
 
 function NewReleasesView() {
   const [items, setItems] = useState<NewRelease[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
     getNewReleases()
       .then((res) => setItems(res.items))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="loading">Loading new releases...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
+  useEffect(() => { load(); }, [load]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await syncNewReleases();
+      setSyncMsg(res.message);
+      load();
+    } catch (e: unknown) {
+      setSyncMsg(e instanceof Error ? e.message : 'Sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="new-releases-view">
-      <h2 className="section-title">New Releases</h2>
-      {items.length === 0 ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <h2 className="section-title" style={{ margin: 0 }}>New Releases</h2>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="btn-primary"
+          style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+        >
+          {syncing ? 'Syncing…' : '↻ Sync'}
+        </button>
+        {syncMsg && <span style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>{syncMsg}</span>}
+      </div>
+
+      {loading ? (
+        <div className="loading">Loading new releases...</div>
+      ) : error ? (
+        <div className="error-banner">{error}</div>
+      ) : items.length === 0 ? (
         <div className="empty-state">
-          <p>No new releases found.</p>
-          <p>Run <code>python sync_new_releases.py</code> from the postgres app directory to populate this feed.</p>
+          <p>No new releases found. Hit <strong>↻ Sync</strong> to fetch the latest from Discogs.</p>
         </div>
       ) : (
         <div className="new-releases-list">
@@ -45,4 +77,5 @@ function NewReleasesView() {
     </div>
   );
 }
+
 export default NewReleasesView;
