@@ -5,13 +5,33 @@ interface Props {
 }
 
 function ExternalLinks({ title, artist, discogs_id }: Props) {
-  const q = encodeURIComponent(`${artist} ${title}`);
+  // Combined query (artist + title) for sites that take a single search box
+  const q       = encodeURIComponent(`${artist} ${title}`);
+  const qArtist = encodeURIComponent(artist);
+  const qTitle  = encodeURIComponent(title);
 
   const links = [
+    // Marketplace / pricing
     ...(discogs_id ? [{ label: 'Discogs', href: `https://www.discogs.com/sell/release/${discogs_id}` }] : []),
-    { label: 'Disk Union', href: `https://diskunion.net/search/?q=${q}` },
-    { label: 'Recofan', href: `https://www.recofan.co.jp/search/?k=${q}` },
-    { label: 'Juno', href: `https://www.juno.co.uk/search/?solrOrder=relevancy&q=${q}` },
+
+    // Japanese stores — Disk Union: maniac search form pre-filled with artist + title
+    {
+      label: 'Disk Union',
+      href: `https://diskunion.net/portal/ct/maniac_search?artist=${qArtist}&title=${qTitle}`,
+    },
+    // HMV Japan English vinyl search
+    {
+      label: 'HMV Japan',
+      href: `https://www.hmv.co.jp/en/select/vinyl/list/?itemtype=0&keyword=${q}`,
+    },
+    // Mercari Japan — largest used-record marketplace in Japan (replaced Recofan which has no online shop)
+    {
+      label: 'Mercari JP',
+      href: `https://jp.mercari.com/search?keyword=${q}`,
+    },
+
+    // Western stores
+    { label: 'Juno',  href: `https://www.juno.co.uk/search/?solrOrder=relevancy&q=${q}` },
     { label: 'Clone', href: `https://clone.nl/search?q=${q}` },
   ];
 
