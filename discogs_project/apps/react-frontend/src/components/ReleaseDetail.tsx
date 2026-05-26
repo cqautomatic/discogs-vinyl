@@ -63,7 +63,9 @@ function ReleaseDetail({ releaseId, onClose, onDrill }: Props) {
 
   const primary = release?.artwork_files?.find((a) => a.image_type === 'primary')
     ?? release?.artwork_files?.[0];
-  const imageUrl = getArtworkUrl(primary?.thumbnail_file_path ?? primary?.local_file_path ?? null)
+  // Prefer full-size local file; fall back to thumbnail, then remote URL
+  const imageUrl = getArtworkUrl(primary?.local_file_path ?? null)
+    ?? getArtworkUrl(primary?.thumbnail_file_path ?? null)
     ?? primary?.original_url ?? null;
 
   useEffect(() => {
