@@ -65,6 +65,57 @@ function listAllQuery(): string {
   `;
 }
 
+// Generic filtered query: builds WHERE clause dynamically from active filters
+function listFilteredQuery(filters: {
+  genre?: string; style?: string; label?: string; year?: number; country?: string; artist?: string;
+}): { sql: string; params: (string | number)[] } {
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+  const joins: string[] = [];
+
+  if (filters.genre) {
+    params.push(filters.genre);
+    joins.push(`LATERAL jsonb_array_elements_text(COALESCE(r.genres, '[]'::jsonb)) AS g(val)`);
+    conditions.push(`g.val = $${params.length}`);
+  }
+  if (filters.style) {
+    params.push(filters.style);
+    joins.push(`LATERAL jsonb_array_elements_text(COALESCE(r.styles, '[]'::jsonb)) AS s(val)`);
+    conditions.push(`s.val = $${params.length}`);
+  }
+  if (filters.label) {
+    params.push(filters.label);
+    conditions.push(`r.label = $${params.length}`);
+  }
+  if (filters.year) {
+    params.push(filters.year);
+    conditions.push(`r.year = $${params.length}`);
+  }
+  if (filters.country) {
+    params.push(filters.country);
+    conditions.push(`r.country = $${params.length}`);
+  }
+  if (filters.artist) {
+    params.push(filters.artist);
+    conditions.push(`r.artist = $${params.length}`);
+  }
+
+  const limitIdx = params.length + 1;
+  const offsetIdx = params.length + 2;
+
+  const sql = `
+    SELECT ${RELEASE_COLS}, ${ARTWORK_AGG}
+    FROM   releases r
+    LEFT JOIN artwork a ON r.release_id = a.release_id
+    ${joins.map(j => `, ${j}`).join('\n')}
+    ${conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''}
+    GROUP BY ${GROUP_BY_COLS}
+    ORDER BY r.artist, r.year
+    LIMIT $${limitIdx} OFFSET $${offsetIdx}
+  `;
+  return { sql, params };
+}
+
 function listByGenreQuery(): string {
   return listBaseQuery('g.val = $1', `,
     LATERAL jsonb_array_elements_text(COALESCE(r.genres, '[]'::jsonb)) AS g(val)`) +
@@ -91,6 +142,10 @@ interface ReleasesQuery {
   offset?: number;
   genre?: string;
   style?: string;
+  label?: string;
+  year?: number;
+  country?: string;
+  artist?: string;
 }
 
 // ── Plugin ────────────────────────────────────────────────────────────────────
@@ -103,23 +158,25 @@ const releases: FastifyPluginAsync = async (fastify) => {
       querystring: {
         type: 'object',
         properties: {
-          limit:  { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-          offset: { type: 'integer', minimum: 0, default: 0 },
-          genre:  { type: 'string', maxLength: 100 },
-          style:  { type: 'string', maxLength: 100 },
+          limit:   { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          offset:  { type: 'integer', minimum: 0, default: 0 },
+          genre:   { type: 'string', maxLength: 100 },
+          style:   { type: 'string', maxLength: 100 },
+          label:   { type: 'string', maxLength: 200 },
+          year:    { type: 'integer', minimum: 1900, maximum: 2100 },
+          country: { type: 'string', maxLength: 100 },
+          artist:  { type: 'string', maxLength: 300 },
         },
       },
     },
   }, async (request, reply) => {
-    const { limit = 20, offset = 0, genre, style } = request.query;
+    const { limit = 20, offset = 0, genre, style, label, year, country, artist } = request.query;
 
     let result;
-    if (genre && style) {
-      result = await pool.query(listByGenreAndStyleQuery(), [genre, style, limit, offset]);
-    } else if (genre) {
-      result = await pool.query(listByGenreQuery(), [genre, limit, offset]);
-    } else if (style) {
-      result = await pool.query(listByStyleQuery(), [style, limit, offset]);
+    const hasFilter = genre || style || label || year || country || artist;
+    if (hasFilter) {
+      const { sql, params } = listFilteredQuery({ genre, style, label, year, country, artist });
+      result = await pool.query(sql, [...params, limit, offset]);
     } else {
       result = await pool.query(listAllQuery(), [limit, offset]);
     }

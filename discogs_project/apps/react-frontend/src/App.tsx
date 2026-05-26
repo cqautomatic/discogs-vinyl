@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import StatsOverview from './components/StatsOverview';
 import BrowseView from './components/BrowseView';
+import type { BrowseFilters } from './components/BrowseView';
 import SearchView from './components/SearchView';
 import CommandCenterView from './components/CommandCenterView';
 import RecommendationsView from './components/RecommendationsView';
 import NewReleasesView from './components/NewReleasesView';
 import ReleaseDetail from './components/ReleaseDetail';
+import type { DrillField } from './components/ReleaseDetail';
 import { searchReleases } from './api';
 import type { Release } from './types';
 import './App.css';
@@ -17,6 +19,7 @@ type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | '
 function App() {
   const [view, setView] = useState<View>('overview');
 
+  // ── Recommendations badge ─────────────────────────────────────────────────────
   const [availableNow, setAvailableNow] = useState(0);
   useEffect(() => {
     fetch(`${API_BASE}/api/recommendations/health`)
@@ -25,6 +28,7 @@ function App() {
       .catch(() => {});
   }, []);
 
+  // ── Header search ─────────────────────────────────────────────────────────────
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<Release[]>([]);
   const [searchReleaseId, setSearchReleaseId] = useState<number | null>(null);
@@ -40,6 +44,21 @@ function App() {
         setSearchResults(res.releases.slice(0, 5));
       } catch { setSearchResults([]); }
     }, 300);
+  }
+
+  // ── Drill navigation ──────────────────────────────────────────────────────────
+  // When a chip is clicked in any ReleaseDetail that isn't inside BrowseView,
+  // we navigate to Browse and pre-populate the filters.
+  const [browseFilters, setBrowseFilters] = useState<BrowseFilters>({});
+
+  function handleGlobalDrill(field: DrillField, value: string) {
+    const filters: BrowseFilters = { [field]: field === 'year' ? Number(value) : value };
+    setBrowseFilters(filters);
+    setView('browse');
+    // Close any open search detail
+    setSearchReleaseId(null);
+    setSearchResults([]);
+    setSearchQ('');
   }
 
   return (
@@ -118,14 +137,20 @@ function App() {
         </div>
       </header>
       <main className="app-main">
-        {view === 'overview' && <StatsOverview />}
-        {view === 'browse' && <BrowseView />}
-        {view === 'search' && <SearchView />}
+        {view === 'overview'       && <StatsOverview />}
+        {view === 'browse'         && <BrowseView externalFilters={browseFilters} />}
+        {view === 'search'         && <SearchView onDrill={handleGlobalDrill} />}
         {view === 'command-center' && <CommandCenterView />}
-        {view === 'discover' && <RecommendationsView />}
-        {view === 'new-releases' && <NewReleasesView />}
+        {view === 'discover'       && <RecommendationsView />}
+        {view === 'new-releases'   && <NewReleasesView />}
+
+        {/* Header quick-search detail modal — lives outside the view tree */}
         {searchReleaseId !== null && (
-          <ReleaseDetail releaseId={searchReleaseId} onClose={() => setSearchReleaseId(null)} />
+          <ReleaseDetail
+            releaseId={searchReleaseId}
+            onClose={() => setSearchReleaseId(null)}
+            onDrill={handleGlobalDrill}
+          />
         )}
       </main>
     </div>

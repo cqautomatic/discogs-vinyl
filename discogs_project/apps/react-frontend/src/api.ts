@@ -26,8 +26,8 @@ import type {
 // Set VITE_API_BASE_URL='' in .env.local to use the Vite dev proxy instead.
 const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
 
-async function fetchJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, init);
   if (!res.ok) {
     throw new Error(`API ${res.status}: ${res.statusText} — ${path}`);
   }
@@ -43,12 +43,20 @@ export async function getReleases(params: {
   offset?: number;
   genre?: string;
   style?: string;
+  label?: string;
+  year?: number;
+  country?: string;
+  artist?: string;
 }): Promise<ReleasesResponse> {
   const p = new URLSearchParams();
-  if (params.limit !== undefined) p.set('limit', String(params.limit));
-  if (params.offset !== undefined) p.set('offset', String(params.offset));
-  if (params.genre) p.set('genre', params.genre);
-  if (params.style) p.set('style', params.style);
+  if (params.limit !== undefined)  p.set('limit',   String(params.limit));
+  if (params.offset !== undefined) p.set('offset',  String(params.offset));
+  if (params.genre)   p.set('genre',   params.genre);
+  if (params.style)   p.set('style',   params.style);
+  if (params.label)   p.set('label',   params.label);
+  if (params.year)    p.set('year',    String(params.year));
+  if (params.country) p.set('country', params.country);
+  if (params.artist)  p.set('artist',  params.artist);
   const qs = p.toString();
   return fetchJSON<ReleasesResponse>(`/api/releases${qs ? `?${qs}` : ''}`);
 }
@@ -135,5 +143,5 @@ export function getArtworkUrl(localFilePath: string | null): string | null {
 }
 
 export function syncNewReleases(): Promise<{ ok: boolean; message: string }> {
-  return fetchJSON('/api/new-releases/sync', { method: 'POST' });
+  return fetchJSON('/api/new-releases/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
 }

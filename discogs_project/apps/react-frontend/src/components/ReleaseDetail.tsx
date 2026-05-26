@@ -3,9 +3,12 @@ import { getRelease, getArtworkUrl } from '../api';
 import type { Release, PgNum } from '../types';
 import ExternalLinks from './ExternalLinks';
 
+export type DrillField = 'genre' | 'style' | 'label' | 'year' | 'country' | 'artist';
+
 interface Props {
   releaseId: number;
   onClose: () => void;
+  onDrill?: (field: DrillField, value: string) => void;
 }
 
 function fmtPrice(v: PgNum, currency?: string | null): string {
@@ -16,7 +19,32 @@ function fmtPrice(v: PgNum, currency?: string | null): string {
   return `${sym}${n.toFixed(2)}`;
 }
 
-function ReleaseDetail({ releaseId, onClose }: Props) {
+function Chip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        color: 'var(--accent)',
+        borderRadius: '4px',
+        padding: '2px 8px',
+        fontSize: '0.82rem',
+        cursor: 'pointer',
+        marginRight: '4px',
+        marginBottom: '4px',
+        transition: 'border-color 0.12s, background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ReleaseDetail({ releaseId, onClose, onDrill }: Props) {
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,31 +61,26 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [releaseId]);
 
-  const primary = release?.artwork_files.find((a) => a.image_type === 'primary')
-    ?? release?.artwork_files[0];
-  const imageUrl = getArtworkUrl(primary?.thumbnail_file_path ?? primary?.local_file_path ?? null) ?? primary?.original_url ?? null;
+  const primary = release?.artwork_files?.find((a) => a.image_type === 'primary')
+    ?? release?.artwork_files?.[0];
+  const imageUrl = getArtworkUrl(primary?.thumbnail_file_path ?? primary?.local_file_path ?? null)
+    ?? primary?.original_url ?? null;
 
-  // Close on Escape key
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  function drill(field: DrillField, value: string) {
+    onClose();
+    onDrill?.(field, value);
+  }
+
   return (
-    <div
-      className="detail-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Release detail"
-    >
+    <div className="detail-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-        <button className="detail-close" onClick={onClose} type="button" aria-label="Close">
-          ✕
-        </button>
+        <button className="detail-close" onClick={onClose} type="button" aria-label="Close">✕</button>
 
         {loading && <div className="loading">Loading...</div>}
         {error && <div className="error-banner">{error}</div>}
@@ -71,46 +94,76 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
             )}
             <div className="detail-info">
               <h2 className="detail-title">{release.title}</h2>
-              <p className="detail-artist">{release.artist}</p>
+
+              {/* Artist — drillable */}
+              <p className="detail-artist">
+                <Chip label={release.artist} onClick={() => drill('artist', release.artist)} />
+              </p>
 
               <table className="detail-table">
                 <tbody>
+
+                  {/* Year — drillable */}
                   {release.year != null && (
-                    <tr><th>Year</th><td>{release.year}</td></tr>
+                    <tr>
+                      <th>Year</th>
+                      <td><Chip label={String(release.year)} onClick={() => drill('year', String(release.year))} /></td>
+                    </tr>
                   )}
+
+                  {/* Label — drillable */}
                   {release.label && (
-                    <tr><th>Label</th><td>{release.label}</td></tr>
+                    <tr>
+                      <th>Label</th>
+                      <td><Chip label={release.label} onClick={() => drill('label', release.label!)} /></td>
+                    </tr>
                   )}
+
                   {release.catno && (
                     <tr><th>Cat #</th><td>{release.catno}</td></tr>
                   )}
                   {release.format && (
                     <tr><th>Format</th><td>{release.format}</td></tr>
                   )}
+
+                  {/* Country — drillable */}
                   {release.country && (
-                    <tr><th>Country</th><td>{release.country}</td></tr>
+                    <tr>
+                      <th>Country</th>
+                      <td><Chip label={release.country} onClick={() => drill('country', release.country!)} /></td>
+                    </tr>
                   )}
+
+                  {/* Genres — each drillable */}
                   {release.genres && release.genres.length > 0 && (
-                    <tr><th>Genre</th><td>{release.genres.join(', ')}</td></tr>
+                    <tr>
+                      <th>Genre</th>
+                      <td>{release.genres.map(g => (
+                        <Chip key={g} label={g} onClick={() => drill('genre', g)} />
+                      ))}</td>
+                    </tr>
                   )}
+
+                  {/* Styles — each drillable */}
                   {release.styles && release.styles.length > 0 && (
-                    <tr><th>Style</th><td>{release.styles.join(', ')}</td></tr>
+                    <tr>
+                      <th>Style</th>
+                      <td>{release.styles.map(s => (
+                        <Chip key={s} label={s} onClick={() => drill('style', s)} />
+                      ))}</td>
+                    </tr>
                   )}
+
                   {release.condition && (
                     <tr>
                       <th>Condition</th>
-                      <td>
-                        {release.condition}
-                        {release.sleeve_condition ? ` / ${release.sleeve_condition}` : ''}
-                      </td>
+                      <td>{release.condition}{release.sleeve_condition ? ` / ${release.sleeve_condition}` : ''}</td>
                     </tr>
                   )}
                   {release.rating != null && release.rating > 0 && (
                     <tr>
                       <th>My Rating</th>
-                      <td>
-                        {'★'.repeat(release.rating)}{'☆'.repeat(5 - release.rating)}
-                      </td>
+                      <td>{'★'.repeat(release.rating)}{'☆'.repeat(5 - release.rating)}</td>
                     </tr>
                   )}
                   {release.community_average_rating != null && (
@@ -130,7 +183,7 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
                       <td>
                         {Number(release.community_have_count).toLocaleString()}
                         {' / '}
-                        {Number(release.community_want_count).toLocaleString() ?? '—'}
+                        {Number(release.community_want_count).toLocaleString()}
                       </td>
                     </tr>
                   )}

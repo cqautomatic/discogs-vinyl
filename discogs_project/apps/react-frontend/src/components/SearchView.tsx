@@ -3,8 +3,13 @@ import { searchReleases } from '../api';
 import type { Release } from '../types';
 import ReleaseCard from './ReleaseCard';
 import ReleaseDetail from './ReleaseDetail';
+import type { DrillField } from './ReleaseDetail';
 
-function SearchView() {
+interface SearchViewProps {
+  onDrill?: (field: DrillField, value: string) => void;
+}
+
+function SearchView({ onDrill }: SearchViewProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Release[]>([]);
   const [total, setTotal] = useState(0);
@@ -85,6 +90,7 @@ function SearchView() {
         <ReleaseDetail
           releaseId={selectedReleaseId}
           onClose={() => setSelectedReleaseId(null)}
+          onDrill={onDrill}
         />
       )}
     </div>
