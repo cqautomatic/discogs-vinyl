@@ -11,8 +11,8 @@ const artwork: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Invalid filename' });
     }
 
-    // Artwork is in the project root
-    const artworkDir = path.join(process.cwd(), 'artwork');
+    // Artwork is in the project root (relative to src being in src/)
+    const artworkDir = path.resolve(__dirname, '../../../../artwork');
     const filepath = path.join(artworkDir, filename);
 
     if (!fs.existsSync(filepath)) {
@@ -26,7 +26,9 @@ const artwork: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ error: 'Forbidden' });
     }
 
-    return reply.sendFile(filepath);
+    const buffer = fs.readFileSync(filepath);
+    reply.type('image/jpeg');
+    return reply.send(buffer);
   });
 };
 

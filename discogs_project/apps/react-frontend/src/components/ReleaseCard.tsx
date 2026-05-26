@@ -1,4 +1,5 @@
 import type { Release } from '../types';
+import { getArtworkUrl } from '../api';
 
 interface Props {
   release: Release;
@@ -9,7 +10,7 @@ function getImageUrl(release: Release): string | null {
   if (release.artwork_files.length > 0) {
     const primary = release.artwork_files.find((a) => a.image_type === 'primary');
     const art = primary ?? release.artwork_files[0];
-    return art.thumbnail_file_path ?? art.original_url ?? null;
+    return getArtworkUrl(art.thumbnail_file_path) ?? art.original_url ?? null;
   }
   return null;
 }

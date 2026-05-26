@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRelease } from '../api';
+import { getRelease, getArtworkUrl } from '../api';
 import type { Release, PgNum } from '../types';
 import ExternalLinks from './ExternalLinks';
 
@@ -35,7 +35,7 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
 
   const primary = release?.artwork_files.find((a) => a.image_type === 'primary')
     ?? release?.artwork_files[0];
-  const imageUrl = primary?.original_url ?? null;
+  const imageUrl = getArtworkUrl(primary?.local_file_path ?? null) ?? primary?.original_url ?? null;
 
   // Close on Escape key
   useEffect(() => {

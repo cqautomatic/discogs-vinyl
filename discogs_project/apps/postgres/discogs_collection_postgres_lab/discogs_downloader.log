@@ -67487,3 +67487,262 @@ connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection re
 2026-05-25 17:26:46,975 - INFO - Processed 240/5103 releases
 2026-05-25 17:27:17,052 - INFO - Processed 250/5103 releases
 2026-05-25 17:27:47,225 - INFO - Processed 260/5103 releases
+2026-05-25 17:28:18,064 - INFO - Processed 270/5103 releases
+2026-05-25 17:28:30,588 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:29:47,979 - INFO - Processed 280/5103 releases
+2026-05-25 17:30:18,888 - INFO - Processed 290/5103 releases
+2026-05-25 17:30:48,963 - INFO - Processed 300/5103 releases
+2026-05-25 17:31:00,055 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:32:24,292 - INFO - Processed 310/5103 releases
+2026-05-25 17:32:54,740 - INFO - Processed 320/5103 releases
+2026-05-25 17:33:31,342 - INFO - Processed 330/5103 releases
+2026-05-25 17:34:07,431 - INFO - Processed 340/5103 releases
+2026-05-25 17:34:43,531 - INFO - Processed 350/5103 releases
+2026-05-25 17:35:14,317 - INFO - Processed 360/5103 releases
+2026-05-25 17:35:26,614 - INFO - Handled Various Artists compilation via title fallback for release release_454947
+2026-05-25 17:35:45,809 - INFO - Processed 370/5103 releases
+2026-05-25 17:36:19,015 - INFO - Processed 380/5103 releases
+2026-05-25 17:36:51,471 - INFO - Processed 390/5103 releases
+2026-05-25 17:37:21,686 - INFO - Processed 400/5103 releases
+2026-05-25 17:37:34,390 - ERROR - API request failed: 404 - {"message":"Artist not found."}
+2026-05-25 17:37:34,391 - INFO - No releases found for artist 'No Artist' (id=118760); skipping.
+2026-05-25 17:37:53,510 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:38:54,844 - INFO - Processed 410/5103 releases
+2026-05-25 17:39:25,358 - INFO - Processed 420/5103 releases
+2026-05-25 17:39:29,868 - INFO - Handled Various Artists compilation via title fallback for release release_733916
+2026-05-25 17:39:54,045 - INFO - Processed 430/5103 releases
+2026-05-25 17:40:29,673 - INFO - Processed 440/5103 releases
+2026-05-25 17:40:34,519 - INFO - Handled Various Artists compilation via title fallback for release release_165514
+2026-05-25 17:40:52,811 - INFO - Handled Various Artists compilation via title fallback for release release_729313
+2026-05-25 17:41:00,286 - INFO - Processed 450/5103 releases
+2026-05-25 17:41:36,184 - INFO - Processed 460/5103 releases
+2026-05-25 17:42:02,217 - INFO - Handled Various Artists compilation via title fallback for release release_8445927
+2026-05-25 17:42:05,654 - INFO - Processed 470/5103 releases
+2026-05-25 17:42:38,928 - INFO - Processed 480/5103 releases
+2026-05-25 17:42:45,880 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:44:19,435 - INFO - Processed 490/5103 releases
+2026-05-25 17:44:23,567 - INFO - Handled Various Artists compilation via title fallback for release release_95722
+2026-05-25 17:44:25,583 - INFO - Handled Various Artists compilation via title fallback for release release_95722
+2026-05-25 17:44:31,600 - INFO - Handled Various Artists compilation via title fallback for release release_1363023
+2026-05-25 17:44:42,681 - INFO - Handled Various Artists compilation via title fallback for release release_2912936
+2026-05-25 17:44:52,738 - INFO - Processed 500/5103 releases
+2026-05-25 17:44:55,864 - INFO - Handled Various Artists compilation via title fallback for release release_3823806
+2026-05-25 17:45:00,794 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:46:13,000 - INFO - Handled Various Artists compilation via title fallback for release release_2042038
+2026-05-25 17:46:22,486 - INFO - Processed 510/5103 releases
+2026-05-25 17:46:27,461 - INFO - Handled Various Artists compilation via title fallback for release release_2099011
+2026-05-25 17:46:53,685 - INFO - Processed 520/5103 releases
+2026-05-25 17:46:55,644 - INFO - Handled Various Artists compilation via title fallback for release release_7672425
+2026-05-25 17:47:23,894 - INFO - Processed 530/5103 releases
+2026-05-25 17:47:30,859 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:48:52,463 - INFO - Handled Various Artists compilation via title fallback for release release_2840623
+2026-05-25 17:48:54,475 - INFO - Handled Various Artists compilation via title fallback for release release_3325698
+2026-05-25 17:48:56,471 - INFO - Handled Various Artists compilation via title fallback for release release_3325737
+2026-05-25 17:48:58,488 - INFO - Handled Various Artists compilation via title fallback for release release_9707734
+2026-05-25 17:48:58,488 - INFO - Processed 540/5103 releases
+2026-05-25 17:49:00,499 - INFO - Handled Various Artists compilation via title fallback for release release_9707522
+2026-05-25 17:49:06,538 - INFO - Handled Various Artists compilation via title fallback for release release_14655569
+2026-05-25 17:49:08,577 - INFO - Handled Various Artists compilation via title fallback for release release_5099292
+2026-05-25 17:49:28,080 - INFO - Processed 550/5103 releases
+2026-05-25 17:49:57,886 - INFO - Processed 560/5103 releases
+2026-05-25 17:50:00,835 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:51:29,051 - INFO - Processed 570/5103 releases
+2026-05-25 17:52:00,343 - INFO - Processed 580/5103 releases
+2026-05-25 17:52:17,078 - INFO - Handled Various Artists compilation via title fallback for release release_149408
+2026-05-25 17:52:29,185 - INFO - Processed 590/5103 releases
+2026-05-25 17:53:00,335 - INFO - Processed 600/5103 releases
+2026-05-25 17:53:21,331 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 17:53:21,333 - ERROR - Error processing release 9334961: integer out of range
+
+2026-05-25 17:53:30,198 - INFO - Handled Various Artists compilation via title fallback for release release_16236
+2026-05-25 17:53:30,198 - INFO - Processed 610/5103 releases
+2026-05-25 17:54:02,527 - INFO - Processed 620/5103 releases
+2026-05-25 17:54:30,528 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 17:55:36,083 - INFO - Processed 630/5103 releases
+2026-05-25 17:55:56,876 - INFO - Handled Various Artists compilation via title fallback for release release_11098845
+2026-05-25 17:56:06,399 - INFO - Processed 640/5103 releases
+2026-05-25 17:56:18,587 - INFO - Handled Various Artists compilation via title fallback for release release_10123542
+2026-05-25 17:56:20,601 - INFO - Handled Various Artists compilation via title fallback for release release_10407581
+2026-05-25 17:56:39,789 - INFO - Processed 650/5103 releases
+2026-05-25 17:57:11,176 - INFO - Processed 660/5103 releases
+2026-05-25 17:57:54,176 - INFO - Processed 670/5103 releases
+2026-05-25 17:58:29,458 - INFO - Processed 680/5103 releases
+2026-05-25 17:58:56,682 - INFO - Handled Various Artists compilation via title fallback for release release_3439531
+2026-05-25 17:59:05,743 - INFO - Processed 690/5103 releases
+2026-05-25 17:59:39,303 - INFO - Processed 700/5103 releases
+2026-05-25 17:59:56,953 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:01:17,052 - INFO - Processed 710/5103 releases
+2026-05-25 18:01:50,324 - INFO - Processed 720/5103 releases
+2026-05-25 18:02:00,697 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:03:25,026 - INFO - Processed 730/5103 releases
+2026-05-25 18:03:57,197 - INFO - Processed 740/5103 releases
+2026-05-25 18:04:27,761 - INFO - Processed 750/5103 releases
+2026-05-25 18:04:30,310 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:05:51,537 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:05:51,539 - ERROR - Error processing release 20423257: integer out of range
+
+2026-05-25 18:05:57,725 - INFO - Processed 760/5103 releases
+2026-05-25 18:06:17,840 - INFO - Handled Various Artists compilation via title fallback for release release_393124
+2026-05-25 18:06:27,292 - INFO - Processed 770/5103 releases
+2026-05-25 18:07:02,430 - INFO - Processed 780/5103 releases
+2026-05-25 18:07:19,998 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:07:19,999 - ERROR - Error processing release 2137671: integer out of range
+
+2026-05-25 18:07:35,336 - INFO - Processed 790/5103 releases
+2026-05-25 18:07:51,707 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:07:51,708 - ERROR - Error processing release 8045593: integer out of range
+
+2026-05-25 18:08:04,215 - INFO - Processed 800/5103 releases
+2026-05-25 18:08:36,141 - INFO - Processed 810/5103 releases
+2026-05-25 18:09:07,685 - INFO - Processed 820/5103 releases
+2026-05-25 18:09:30,878 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:10:36,024 - INFO - Handled Various Artists compilation via title fallback for release release_41724
+2026-05-25 18:10:36,025 - INFO - Processed 830/5103 releases
+2026-05-25 18:10:41,069 - INFO - Handled Various Artists compilation via title fallback for release release_2543892
+2026-05-25 18:11:08,214 - INFO - Processed 840/5103 releases
+2026-05-25 18:11:44,485 - INFO - Processed 850/5103 releases
+2026-05-25 18:12:18,008 - INFO - Processed 860/5103 releases
+2026-05-25 18:12:50,956 - INFO - Processed 870/5103 releases
+2026-05-25 18:12:53,850 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:14:27,291 - INFO - Processed 880/5103 releases
+2026-05-25 18:15:00,423 - INFO - Processed 890/5103 releases
+2026-05-25 18:15:34,825 - INFO - Processed 900/5103 releases
+2026-05-25 18:16:10,340 - INFO - Processed 910/5103 releases
+2026-05-25 18:16:30,340 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:17:40,831 - INFO - Processed 920/5103 releases
+2026-05-25 18:17:55,908 - INFO - Handled Various Artists compilation via title fallback for release release_10954443
+2026-05-25 18:17:57,898 - INFO - Handled Various Artists compilation via title fallback for release release_13173778
+2026-05-25 18:18:15,702 - INFO - Processed 930/5103 releases
+2026-05-25 18:18:46,899 - INFO - Processed 940/5103 releases
+2026-05-25 18:19:21,965 - INFO - Processed 950/5103 releases
+2026-05-25 18:19:51,798 - INFO - Processed 960/5103 releases
+2026-05-25 18:19:57,378 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:21:22,678 - INFO - Processed 970/5103 releases
+2026-05-25 18:21:58,372 - INFO - Processed 980/5103 releases
+2026-05-25 18:22:00,873 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:23:29,217 - INFO - Processed 990/5103 releases
+2026-05-25 18:23:59,384 - INFO - Processed 1000/5103 releases
+2026-05-25 18:24:30,489 - WARNING - Rate limit exceeded, waiting 60 seconds...
+2026-05-25 18:25:30,667 - INFO - Processed 1010/5103 releases
+2026-05-25 18:25:45,256 - INFO - Handled Various Artists compilation via title fallback for release release_740484
+2026-05-25 18:25:47,270 - INFO - Handled Various Artists compilation via title fallback for release release_1245116
+2026-05-25 18:25:59,496 - INFO - Processed 1020/5103 releases
+2026-05-25 18:26:16,457 - INFO - Handled Various Artists compilation via title fallback for release release_3067527
+2026-05-25 18:26:31,084 - INFO - Processed 1030/5103 releases
+2026-05-25 18:27:02,793 - INFO - Processed 1040/5103 releases
+2026-05-25 18:27:39,397 - INFO - Processed 1050/5103 releases
+2026-05-25 18:28:13,815 - INFO - Processed 1060/5103 releases
+2026-05-25 18:28:54,249 - INFO - Processed 1070/5103 releases
+2026-05-25 18:29:05,258 - INFO - Handled Various Artists compilation via title fallback for release release_1149502
+2026-05-25 18:29:23,410 - INFO - Processed 1080/5103 releases
+2026-05-25 18:29:55,098 - INFO - Processed 1090/5103 releases
+2026-05-25 18:30:03,150 - INFO - Handled Various Artists compilation via title fallback for release release_2148649
+2026-05-25 18:30:14,910 - INFO - Handled Various Artists compilation via title fallback for release release_2528508
+2026-05-25 18:30:25,040 - INFO - Processed 1100/5103 releases
+2026-05-25 18:30:30,515 - INFO - Handled Various Artists compilation via title fallback for release release_2673543
+2026-05-25 18:30:38,716 - INFO - Handled Various Artists compilation via title fallback for release release_22629023
+2026-05-25 18:30:54,715 - INFO - Processed 1110/5103 releases
+2026-05-25 18:31:26,247 - INFO - Processed 1120/5103 releases
+2026-05-25 18:31:56,248 - INFO - Handled Various Artists compilation via title fallback for release release_79515
+2026-05-25 18:31:56,249 - INFO - Processed 1130/5103 releases
+2026-05-25 18:32:29,521 - INFO - Processed 1140/5103 releases
+2026-05-25 18:32:37,815 - INFO - Handled Various Artists compilation via title fallback for release release_1783310
+2026-05-25 18:32:42,859 - INFO - Handled Various Artists compilation via title fallback for release release_5821520
+2026-05-25 18:32:47,883 - INFO - Handled Various Artists compilation via title fallback for release release_11320043
+2026-05-25 18:32:57,113 - INFO - Processed 1150/5103 releases
+2026-05-25 18:33:41,083 - INFO - Processed 1160/5103 releases
+2026-05-25 18:34:04,308 - INFO - Handled Various Artists compilation via title fallback for release release_17635
+2026-05-25 18:34:13,411 - INFO - Processed 1170/5103 releases
+2026-05-25 18:34:44,407 - INFO - Processed 1180/5103 releases
+2026-05-25 18:35:07,424 - INFO - Handled Various Artists compilation via title fallback for release release_333344
+2026-05-25 18:35:17,355 - INFO - Processed 1190/5103 releases
+2026-05-25 18:35:50,378 - INFO - Processed 1200/5103 releases
+2026-05-25 18:36:21,804 - INFO - Processed 1210/5103 releases
+2026-05-25 18:36:45,091 - INFO - Handled Various Artists compilation via title fallback for release release_831142
+2026-05-25 18:37:00,048 - INFO - Processed 1220/5103 releases
+2026-05-25 18:37:33,063 - INFO - Processed 1230/5103 releases
+2026-05-25 18:38:08,214 - INFO - Processed 1240/5103 releases
+2026-05-25 18:38:38,754 - INFO - Handled Various Artists compilation via title fallback for release release_282897
+2026-05-25 18:38:44,856 - INFO - Processed 1250/5103 releases
+2026-05-25 18:39:14,874 - INFO - Handled Various Artists compilation via title fallback for release release_1034950
+2026-05-25 18:39:19,932 - INFO - Processed 1260/5103 releases
+2026-05-25 18:39:51,335 - INFO - Processed 1270/5103 releases
+2026-05-25 18:40:23,440 - INFO - Processed 1280/5103 releases
+2026-05-25 18:40:54,552 - INFO - Processed 1290/5103 releases
+2026-05-25 18:41:23,238 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:41:23,240 - ERROR - Error processing release 37186551: integer out of range
+
+2026-05-25 18:41:31,736 - INFO - Processed 1300/5103 releases
+2026-05-25 18:41:45,273 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:41:45,273 - ERROR - Error processing release 30862866: integer out of range
+
+2026-05-25 18:42:04,749 - INFO - Handled Various Artists compilation via title fallback for release release_774085
+2026-05-25 18:42:08,337 - INFO - Processed 1310/5103 releases
+2026-05-25 18:42:18,831 - INFO - Handled Various Artists compilation via title fallback for release release_637704
+2026-05-25 18:42:24,018 - ERROR - Error upserting track: value too long for type character varying(10)
+
+2026-05-25 18:42:24,019 - ERROR - Error processing tracks for release release_23085: value too long for type character varying(10)
+
+2026-05-25 18:42:34,135 - INFO - Handled Various Artists compilation via title fallback for release release_79518
+2026-05-25 18:42:37,197 - INFO - Processed 1320/5103 releases
+2026-05-25 18:43:11,220 - INFO - Processed 1330/5103 releases
+2026-05-25 18:43:24,195 - INFO - Handled Various Artists compilation via title fallback for release release_21235
+2026-05-25 18:43:26,209 - INFO - Handled Various Artists compilation via title fallback for release release_11933
+2026-05-25 18:43:44,849 - INFO - Processed 1340/5103 releases
+2026-05-25 18:44:16,510 - INFO - Processed 1350/5103 releases
+2026-05-25 18:44:33,559 - INFO - Handled Various Artists compilation via title fallback for release release_89419
+2026-05-25 18:44:35,553 - INFO - Handled Various Artists compilation via title fallback for release release_263577
+2026-05-25 18:44:37,579 - INFO - Handled Various Artists compilation via title fallback for release release_161949
+2026-05-25 18:44:39,574 - INFO - Handled Various Artists compilation via title fallback for release release_418464
+2026-05-25 18:44:42,603 - INFO - Processed 1360/5103 releases
+2026-05-25 18:45:16,050 - INFO - Processed 1370/5103 releases
+2026-05-25 18:45:55,172 - INFO - Processed 1380/5103 releases
+2026-05-25 18:46:30,062 - INFO - Processed 1390/5103 releases
+2026-05-25 18:47:00,777 - INFO - Handled Various Artists compilation via title fallback for release release_2388250
+2026-05-25 18:47:00,777 - INFO - Processed 1400/5103 releases
+2026-05-25 18:47:34,465 - INFO - Processed 1410/5103 releases
+2026-05-25 18:48:07,021 - INFO - Processed 1420/5103 releases
+2026-05-25 18:48:39,373 - INFO - Processed 1430/5103 releases
+2026-05-25 18:49:13,271 - INFO - Processed 1440/5103 releases
+2026-05-25 18:49:48,037 - INFO - Processed 1450/5103 releases
+2026-05-25 18:50:19,891 - INFO - Processed 1460/5103 releases
+2026-05-25 18:50:27,877 - INFO - Handled Various Artists compilation via title fallback for release release_6900472
+2026-05-25 18:50:50,981 - INFO - Processed 1470/5103 releases
+2026-05-25 18:51:26,590 - INFO - Processed 1480/5103 releases
+2026-05-25 18:52:01,413 - INFO - Processed 1490/5103 releases
+2026-05-25 18:52:35,089 - INFO - Processed 1500/5103 releases
+2026-05-25 18:53:09,566 - INFO - Processed 1510/5103 releases
+2026-05-25 18:53:45,960 - INFO - Processed 1520/5103 releases
+2026-05-25 18:54:19,731 - INFO - Processed 1530/5103 releases
+2026-05-25 18:54:51,505 - INFO - Processed 1540/5103 releases
+2026-05-25 18:55:23,505 - INFO - Processed 1550/5103 releases
+2026-05-25 18:55:59,485 - INFO - Processed 1560/5103 releases
+2026-05-25 18:56:31,110 - INFO - Processed 1570/5103 releases
+2026-05-25 18:56:59,211 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:56:59,213 - ERROR - Error processing release 123538: integer out of range
+
+2026-05-25 18:57:02,288 - INFO - Processed 1580/5103 releases
+2026-05-25 18:57:33,453 - INFO - Processed 1590/5103 releases
+2026-05-25 18:58:14,318 - INFO - Processed 1600/5103 releases
+2026-05-25 18:58:48,706 - INFO - Processed 1610/5103 releases
+2026-05-25 18:59:21,319 - INFO - Processed 1620/5103 releases
+2026-05-25 18:59:53,899 - ERROR - Error upserting release: integer out of range
+
+2026-05-25 18:59:53,900 - ERROR - Error processing release 2777589: integer out of range
+
+2026-05-25 18:59:53,900 - INFO - Processed 1630/5103 releases
+2026-05-25 19:00:35,525 - INFO - Processed 1640/5103 releases
+2026-05-25 19:01:07,389 - INFO - Processed 1650/5103 releases
+2026-05-25 19:01:24,332 - INFO - Handled Various Artists compilation via title fallback for release release_253563
+2026-05-25 19:01:30,355 - INFO - Handled Various Artists compilation via title fallback for release release_345698
+2026-05-25 19:01:37,639 - INFO - Processed 1660/5103 releases
+2026-05-25 19:02:11,767 - INFO - Processed 1670/5103 releases
+2026-05-25 19:02:46,470 - INFO - Processed 1680/5103 releases
+2026-05-25 19:02:51,566 - INFO - Handled Various Artists compilation via title fallback for release release_12524084

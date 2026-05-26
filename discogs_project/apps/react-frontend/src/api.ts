@@ -125,3 +125,11 @@ export function getArtist(name: string): Promise<ArtistPageData> {
 export function getNewReleases(limit = 20): Promise<{ items: NewRelease[]; count: number }> {
   return fetchJSON(`/api/new-releases?limit=${limit}`);
 }
+
+// Construct artwork URLs from local file paths
+export function getArtworkUrl(localFilePath: string | null): string | null {
+  if (!localFilePath) return null;
+  const filename = localFilePath.split('/').pop();
+  if (!filename) return null;
+  return `${API_BASE}/artwork/${filename}`;
+}
