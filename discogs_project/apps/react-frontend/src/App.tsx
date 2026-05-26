@@ -6,6 +6,7 @@ import SearchView from './components/SearchView';
 import CommandCenterView from './components/CommandCenterView';
 import RecommendationsView from './components/RecommendationsView';
 import NewReleasesView from './components/NewReleasesView';
+import DiggingView from './components/DiggingView';
 import ReleaseDetail from './components/ReleaseDetail';
 import type { DrillField } from './components/ReleaseDetail';
 import { searchReleases } from './api';
@@ -14,7 +15,7 @@ import './App.css';
 
 const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
 
-type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | 'new-releases';
+type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | 'new-releases' | 'dig';
 
 function App() {
   const [view, setView] = useState<View>('overview');
@@ -98,6 +99,13 @@ function App() {
             New Releases
           </button>
           <button
+            className={`nav-btn${view === 'dig' ? ' active' : ''}`}
+            onClick={() => setView('dig')}
+            type="button"
+          >
+            Dig
+          </button>
+          <button
             className={`nav-btn${view === 'command-center' ? ' active' : ''}`}
             onClick={() => setView('command-center')}
             type="button"
@@ -143,6 +151,7 @@ function App() {
         {view === 'command-center' && <CommandCenterView />}
         {view === 'discover'       && <RecommendationsView />}
         {view === 'new-releases'   && <NewReleasesView />}
+        {view === 'dig'            && <DiggingView />}
 
         {/* Header quick-search detail modal — lives outside the view tree */}
         {searchReleaseId !== null && (

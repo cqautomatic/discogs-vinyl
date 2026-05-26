@@ -43,7 +43,7 @@ def search_discogs(params: dict) -> list:
         time.sleep(RATE_DELAY)
 
 
-def insert_result(cur, result: dict, owned_ids: set, source: str) -> tuple[int, int]:
+def insert_result(cur, result: dict, owned_ids: set, source: str, bypass_genre_filter: bool = False) -> tuple[int, int]:
     release_id = result.get("id")
     if not release_id or release_id in owned_ids:
         return 0, 1
@@ -53,11 +53,18 @@ def insert_result(cur, result: dict, owned_ids: set, source: str) -> tuple[int, 
     if formats and not any("vinyl" in f or '12"' in f or '7"' in f or '10"' in f or "lp" in f for f in formats):
         return 0, 1
 
-    # Skip genres not in user's collection taste
-    WANTED_GENRES = {"electronic", "funk / soul", "funk/soul", "jazz", "hip hop", "reggae", "latin", "soul"}
-    result_genres = {g.lower() for g in (result.get("genre") or [])}
-    if result_genres and not result_genres.intersection(WANTED_GENRES):
-        return 0, 1
+    # Genre/style filter — skip results outside user's taste
+    # bypass_genre_filter=True when searching by a specific style (already on-target)
+    if not bypass_genre_filter:
+        WANTED_GENRES = {"electronic", "funk / soul", "funk/soul", "jazz", "hip hop", "reggae", "latin", "soul", "pop"}
+        WANTED_STYLES = {"city pop", "boogie", "synth-pop", "disco", "house", "deep house",
+                         "funk", "soul", "jazz-funk", "electro", "italo-disco", "nu-disco", "garage house"}
+        result_genres = {g.lower() for g in (result.get("genre") or [])}
+        result_styles = {s.lower() for s in (result.get("style") or [])}
+        genre_ok = not result_genres or result_genres.intersection(WANTED_GENRES)
+        style_ok = result_styles.intersection(WANTED_STYLES)
+        if not genre_ok and not style_ok:
+            return 0, 1
 
     raw_title = result.get("title", "")
     parts = raw_title.split(" - ", 1)
@@ -126,9 +133,17 @@ def main():
         """)
         top_artists = [r[0] for r in cur.fetchall()]
 
+        # Top 10 styles by ownership — searched separately so niche styles like City Pop surface
+        cur.execute("""
+            SELECT style_val, COUNT(*) AS cnt
+            FROM releases, jsonb_array_elements_text(COALESCE(styles,'[]'::jsonb)) AS style_val
+            GROUP BY style_val ORDER BY cnt DESC LIMIT 10
+        """)
+        top_styles = [r[0] for r in cur.fetchall()]
+
     inserted = skipped = 0
 
-    print(f"Searching by {len(top_labels)} labels, {len(top_genres)} genres, {len(top_artists)} artists...")
+    print(f"Searching by {len(top_labels)} labels, {len(top_genres)} genres, {len(top_artists)} artists, {len(top_styles)} styles...")
 
     with conn.cursor() as cur:
         cur.execute("SET search_path TO collection_data, public")
@@ -155,6 +170,15 @@ def main():
             results = search_discogs({"artist": quote(artist), "sort": "year", "sort_order": "desc"})
             for r in results:
                 i, s = insert_result(cur, r, owned_ids, f"artist:{artist}")
+                inserted += i; skipped += s
+
+        # 4. Search by top styles — surfaces niche styles like City Pop, Boogie, etc.
+        #    bypass_genre_filter=True because the style search is already on-target
+        for style in top_styles:
+            print(f"  style: {style}")
+            results = search_discogs({"style": style, "sort": "have", "sort_order": "desc"})
+            for r in results:
+                i, s = insert_result(cur, r, owned_ids, f"style:{style}", bypass_genre_filter=True)
                 inserted += i; skipped += s
 
     conn.close()

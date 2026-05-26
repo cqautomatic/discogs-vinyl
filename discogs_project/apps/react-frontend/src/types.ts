@@ -244,6 +244,73 @@ export interface ArtistPageData {
   wantlist: WantlistItem[];
 }
 
+// ── /api/discover ─────────────────────────────────────────────────────────────
+
+export type DiscoverStatus = 'owned' | 'wantlist' | 'gap';
+
+export interface StyleResult {
+  id: number;
+  title: string;
+  year: number | null;
+  label: string | null;
+  format: string | null;
+  genres: string[];
+  styles: string[];
+  country: string | null;
+  thumb: string | null;
+  community_have: number | null;
+  community_want: number | null;
+  status: DiscoverStatus;
+}
+
+export interface ExpandResult {
+  style: string;
+  owned_count: number;
+  topLabels: string[];
+  topArtists: string[];
+  results: Array<{
+    discogs_release_id: number;
+    title: string;
+    artist: string;
+    year: number | null;
+    label: string | null;
+    format: string | null;
+    genres: string[] | null;
+    country: string | null;
+    source: string;
+    status: DiscoverStatus;
+  }>;
+  feed_tip: string | null;
+}
+
+export interface DiscogsListMeta {
+  id: number;
+  slug: string;
+  name: string;
+  url: string;
+}
+
+export interface DiscogsListItem {
+  id: number;
+  title: string;
+  thumb: string | null;
+  uri: string | null;
+  type: string;
+  comment: string;
+  status: DiscoverStatus;
+}
+
+export interface DiscogsListDetail {
+  id: number;
+  name: string;
+  description: string;
+  item_count: number;
+  items: DiscogsListItem[];
+  owned: number;
+  wanted: number;
+  gaps: number;
+}
+
 export interface NewRelease {
   id: number;
   discogs_release_id: number;

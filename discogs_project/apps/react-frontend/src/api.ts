@@ -20,6 +20,10 @@ import type {
   GenreValueEntry,
   ArtistPageData,
   NewRelease,
+  StyleResult,
+  ExpandResult,
+  DiscogsListMeta,
+  DiscogsListDetail,
 } from './types';
 
 // Default: direct to Node API (CORS is open to localhost:5173).
@@ -148,4 +152,29 @@ export function getArtworkUrl(localFilePath: string | null): string | null {
 
 export function syncNewReleases(): Promise<{ ok: boolean; message: string }> {
   return fetchJSON('/api/new-releases/sync', { method: 'POST' });
+}
+
+// ── Discover ──────────────────────────────────────────────────────────────────
+
+export function discoverStyle(params: { style?: string; genre?: string; limit?: number }): Promise<{ results: StyleResult[]; total: number }> {
+  const p = new URLSearchParams();
+  if (params.style)  p.set('style', params.style);
+  if (params.genre)  p.set('genre', params.genre);
+  if (params.limit)  p.set('limit', String(params.limit));
+  return fetchJSON(`/api/discover/style?${p}`);
+}
+
+export function discoverExpand(style?: string, limit?: number): Promise<ExpandResult> {
+  const p = new URLSearchParams();
+  if (style)  p.set('style', style);
+  if (limit)  p.set('limit', String(limit));
+  return fetchJSON(`/api/discover/expand?${p}`);
+}
+
+export function searchDiscogsLists(query: string): Promise<{ lists: DiscogsListMeta[]; query: string; discogs_search_url: string; error?: string }> {
+  return fetchJSON(`/api/discover/lists?query=${encodeURIComponent(query)}`);
+}
+
+export function loadDiscogsList(id: number): Promise<DiscogsListDetail> {
+  return fetchJSON(`/api/discover/list/${id}`);
 }

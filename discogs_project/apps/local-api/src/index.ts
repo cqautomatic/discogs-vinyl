@@ -11,6 +11,7 @@ import searchRoutes from './routes/search';
 import recommendationsRoutes from './routes/recommendations';
 import artistRoutes from './routes/artist';
 import newReleasesRoutes from './routes/new-releases';
+import discoverRoutes from './routes/discover';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
@@ -30,6 +31,7 @@ async function start(): Promise<void> {
   await fastify.register(recommendationsRoutes, { prefix: '/api' });
   await fastify.register(artistRoutes, { prefix: '/api' });
   await fastify.register(newReleasesRoutes, { prefix: '/api' });
+  await fastify.register(discoverRoutes,   { prefix: '/api' });
 
   await fastify.listen({ port: PORT, host: '0.0.0.0' });
 }
