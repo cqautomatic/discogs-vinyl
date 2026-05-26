@@ -38,6 +38,8 @@ export function getStats(): Promise<Stats> {
   return fetchJSON<Stats>('/api/stats');
 }
 
+export type SortOption = 'artist_year' | 'date_added' | 'year' | 'title';
+
 export async function getReleases(params: {
   limit?: number;
   offset?: number;
@@ -47,6 +49,7 @@ export async function getReleases(params: {
   year?: number;
   country?: string;
   artist?: string;
+  sort?: SortOption;
 }): Promise<ReleasesResponse> {
   const p = new URLSearchParams();
   if (params.limit !== undefined)  p.set('limit',   String(params.limit));
@@ -57,6 +60,7 @@ export async function getReleases(params: {
   if (params.year)    p.set('year',    String(params.year));
   if (params.country) p.set('country', params.country);
   if (params.artist)  p.set('artist',  params.artist);
+  if (params.sort)    p.set('sort',    params.sort);
   const qs = p.toString();
   return fetchJSON<ReleasesResponse>(`/api/releases${qs ? `?${qs}` : ''}`);
 }

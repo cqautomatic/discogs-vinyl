@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getReleases, getGenres, getStyles } from '../api';
+import type { SortOption } from '../api';
 import type { Release, GenreStat, StyleStat, PgNum } from '../types';
 import ReleaseCard from './ReleaseCard';
 import ReleaseDetail from './ReleaseDetail';
@@ -45,6 +46,7 @@ function BrowseView({ externalFilters }: BrowseViewProps) {
   const [selectedYear,    setSelectedYear]    = useState<number | undefined>(externalFilters?.year);
   const [selectedCountry, setSelectedCountry] = useState<string>(externalFilters?.country ?? '');
   const [selectedArtist,  setSelectedArtist]  = useState<string>(externalFilters?.artist  ?? '');
+  const [sort, setSort] = useState<SortOption>('artist_year');
 
   // Sync when externalFilters prop changes (e.g., drill fired while browse is already visible)
   const prevExternalKey = useRef<string | null>(null);
@@ -85,6 +87,7 @@ function BrowseView({ externalFilters }: BrowseViewProps) {
         year:    selectedYear,
         country: selectedCountry || undefined,
         artist:  selectedArtist  || undefined,
+        sort,
       });
       setReleases(res.releases);
       setResultCount(toNum(res.count));
@@ -93,7 +96,7 @@ function BrowseView({ externalFilters }: BrowseViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [offset, selectedGenre, selectedStyle, selectedLabel, selectedYear, selectedCountry, selectedArtist]);
+  }, [offset, selectedGenre, selectedStyle, selectedLabel, selectedYear, selectedCountry, selectedArtist, sort]);
 
   useEffect(() => {
     loadReleases();
@@ -185,6 +188,20 @@ function BrowseView({ externalFilters }: BrowseViewProps) {
                 {s.style} ({toNum(s.release_count).toLocaleString()})
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="sort-select">Sort</label>
+          <select
+            id="sort-select"
+            value={sort}
+            onChange={(e) => { setSort(e.target.value as SortOption); setOffset(0); }}
+          >
+            <option value="artist_year">Artist / Year</option>
+            <option value="date_added">Recently Added</option>
+            <option value="year">Release Year</option>
+            <option value="title">Title</option>
           </select>
         </div>
 

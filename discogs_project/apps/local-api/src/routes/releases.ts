@@ -40,27 +40,28 @@ const ARTWORK_AGG = `
   ) AS artwork_files
 `;
 
-// ── Query builders ────────────────────────────────────────────────────────────
+// ── Sort helpers ──────────────────────────────────────────────────────────────
 
-function listBaseQuery(whereClause: string, extraJoins: string): string {
-  return `
-    SELECT ${RELEASE_COLS}, ${ARTWORK_AGG}
-    FROM   releases r
-    LEFT JOIN artwork a ON r.release_id = a.release_id
-    ${extraJoins}
-    WHERE  ${whereClause}
-    GROUP BY ${GROUP_BY_COLS}
-    ORDER BY r.artist, r.year
-  `;
+type SortOption = 'artist_year' | 'date_added' | 'year' | 'title';
+
+function orderByClause(sort?: SortOption): string {
+  switch (sort) {
+    case 'date_added': return 'r.date_added DESC NULLS LAST';
+    case 'year':       return 'r.year DESC NULLS LAST, r.artist';
+    case 'title':      return 'r.title, r.artist';
+    default:           return 'r.artist, r.year';           // artist_year (default)
+  }
 }
 
-function listAllQuery(): string {
+// ── Query builders ────────────────────────────────────────────────────────────
+
+function listAllQuery(sort?: SortOption): string {
   return `
     SELECT ${RELEASE_COLS}, ${ARTWORK_AGG}
     FROM   releases r
     LEFT JOIN artwork a ON r.release_id = a.release_id
     GROUP BY ${GROUP_BY_COLS}
-    ORDER BY r.artist, r.year
+    ORDER BY ${orderByClause(sort)}
     LIMIT $1 OFFSET $2
   `;
 }
@@ -68,7 +69,7 @@ function listAllQuery(): string {
 // Generic filtered query: builds WHERE clause dynamically from active filters
 function listFilteredQuery(filters: {
   genre?: string; style?: string; label?: string; year?: number; country?: string; artist?: string;
-}): { sql: string; params: (string | number)[] } {
+}, sort?: SortOption): { sql: string; params: (string | number)[] } {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
   const joins: string[] = [];
@@ -110,29 +111,10 @@ function listFilteredQuery(filters: {
     ${joins.map(j => `, ${j}`).join('\n')}
     ${conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''}
     GROUP BY ${GROUP_BY_COLS}
-    ORDER BY r.artist, r.year
+    ORDER BY ${orderByClause(sort)}
     LIMIT $${limitIdx} OFFSET $${offsetIdx}
   `;
   return { sql, params };
-}
-
-function listByGenreQuery(): string {
-  return listBaseQuery('g.val = $1', `,
-    LATERAL jsonb_array_elements_text(COALESCE(r.genres, '[]'::jsonb)) AS g(val)`) +
-    '\n    LIMIT $2 OFFSET $3';
-}
-
-function listByStyleQuery(): string {
-  return listBaseQuery('s.val = $1', `,
-    LATERAL jsonb_array_elements_text(COALESCE(r.styles, '[]'::jsonb)) AS s(val)`) +
-    '\n    LIMIT $2 OFFSET $3';
-}
-
-function listByGenreAndStyleQuery(): string {
-  return listBaseQuery('g.val = $1 AND s.val = $2', `,
-    LATERAL jsonb_array_elements_text(COALESCE(r.genres, '[]'::jsonb)) AS g(val),
-    LATERAL jsonb_array_elements_text(COALESCE(r.styles, '[]'::jsonb)) AS s(val)`) +
-    '\n    LIMIT $3 OFFSET $4';
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -146,6 +128,7 @@ interface ReleasesQuery {
   year?: number;
   country?: string;
   artist?: string;
+  sort?: SortOption;
 }
 
 // ── Plugin ────────────────────────────────────────────────────────────────────
@@ -166,19 +149,20 @@ const releases: FastifyPluginAsync = async (fastify) => {
           year:    { type: 'integer', minimum: 1900, maximum: 2100 },
           country: { type: 'string', maxLength: 100 },
           artist:  { type: 'string', maxLength: 300 },
+          sort:    { type: 'string', enum: ['artist_year', 'date_added', 'year', 'title'] },
         },
       },
     },
   }, async (request, reply) => {
-    const { limit = 20, offset = 0, genre, style, label, year, country, artist } = request.query;
+    const { limit = 20, offset = 0, genre, style, label, year, country, artist, sort } = request.query;
 
     let result;
     const hasFilter = genre || style || label || year || country || artist;
     if (hasFilter) {
-      const { sql, params } = listFilteredQuery({ genre, style, label, year, country, artist });
+      const { sql, params } = listFilteredQuery({ genre, style, label, year, country, artist }, sort);
       result = await pool.query(sql, [...params, limit, offset]);
     } else {
-      result = await pool.query(listAllQuery(), [limit, offset]);
+      result = await pool.query(listAllQuery(sort), [limit, offset]);
     }
 
     return reply.send({ releases: result.rows, count: result.rowCount });
