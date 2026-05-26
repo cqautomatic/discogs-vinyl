@@ -277,7 +277,9 @@ export interface ExpandResult {
     format: string | null;
     genres: string[] | null;
     country: string | null;
-    source: string;
+    thumb: string | null;
+    /** 'top-label' | 'top-artist' | 'style' */
+    match: string;
     status: DiscoverStatus;
   }>;
   feed_tip: string | null;

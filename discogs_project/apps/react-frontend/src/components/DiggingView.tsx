@@ -229,9 +229,8 @@ function CollectionExpander() {
   return (
     <div>
       <p style={{ fontSize: '0.85rem', color: 'var(--txt-2)', marginBottom: '1rem' }}>
-        Picks a style from your collection, finds the labels and artists you already love in it,
-        then surfaces releases from those labels/artists you don&apos;t own yet.
-        Runs entirely from your local data — instant results.
+        Pick a style, see what Discogs has in it — sorted so your favourite labels and artists
+        appear first. Every result is guaranteed to be in the same style.
       </p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {loadingStyles ? (
@@ -286,30 +285,34 @@ function CollectionExpander() {
           {result.results.length > 0 ? (
             <>
               <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
-                {result.results.length} releases from your {result.style} labels/artists you don&apos;t own
+                {result.results.length} {result.style} releases — sorted by your collection DNA
               </h4>
               {result.results.map((r) => (
-                <ResultRow
-                  key={r.discogs_release_id}
-                  thumb={null}
-                  title={r.title}
-                  artist={r.artist}
-                  year={r.year}
-                  label={r.label}
-                  status={r.status}
-                  discogsId={r.discogs_release_id}
-                />
+                <div key={r.discogs_release_id} style={{ position: 'relative' }}>
+                  {(r.match === 'top-label' || r.match === 'top-artist') && (
+                    <span style={{
+                      position: 'absolute', top: 14, right: 0,
+                      fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+                      color: r.match === 'top-label' ? '#ce93d8' : '#80cbc4',
+                      textTransform: 'uppercase',
+                    }}>
+                      {r.match === 'top-label' ? '★ your label' : '♪ your artist'}
+                    </span>
+                  )}
+                  <ResultRow
+                    thumb={r.thumb}
+                    title={r.title}
+                    artist={r.artist}
+                    year={r.year}
+                    label={r.label}
+                    status={r.status}
+                    discogsId={r.discogs_release_id}
+                  />
+                </div>
               ))}
             </>
           ) : (
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', fontSize: '0.85rem', color: 'var(--txt-2)' }}>
-              {result.feed_tip ?? 'No feed results yet for this style.'}
-              {result.feed_tip && (
-                <div style={{ marginTop: '8px', color: 'var(--accent)', fontSize: '0.82rem' }}>
-                  After syncing, style-sourced results for {result.style} will appear here automatically.
-                </div>
-              )}
-            </div>
+            <p className="empty-state">No {result.style} results found on Discogs.</p>
           )}
         </>
       )}

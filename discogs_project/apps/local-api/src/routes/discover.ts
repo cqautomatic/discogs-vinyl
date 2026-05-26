@@ -178,9 +178,10 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   // ── 2. Collection DNA Expander ──────────────────────────────────────────────
-  // Pure SQL: extracts top labels + artists for the given style from your
-  // collection, then finds items in new_releases_feed you don't own yet that
-  // match those labels / artists.
+  // 1. SQL: top labels + artists for the chosen style in your collection
+  // 2. Discogs live search by style (stays 100% in-genre)
+  // 3. Rank results: top-label matches first, then top-artist, then rest
+  // 4. Tag each result owned / wantlist / gap
   fastify.get<{ Querystring: { style?: string; limit?: number } }>(
     '/discover/expand',
     {
@@ -189,24 +190,27 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             style: { type: 'string', maxLength: 120 },
-            limit: { type: 'integer', minimum: 1, maximum: 100, default: 40 },
+            limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
           },
         },
       },
     },
     async (request, reply) => {
-      const { style, limit = 40 } = request.query;
+      const { style, limit = 50 } = request.query;
 
-      const styleParam: string[] = style ? [style] : [];
-      const styleClause = style ? 'AND style_val = $1' : '';
+      if (!style) {
+        return reply.status(400).send({ error: 'Provide a style' });
+      }
 
-      // Parallel: top labels, top artists, owned count in style
+      const styleParam = [style];
+
+      // SQL: top labels, top artists, owned count — all for the exact style
       const [labelRes, artistRes, countRes] = await Promise.all([
         pool.query<{ label: string; cnt: string }>(
           `SELECT r.label, COUNT(*) AS cnt
            FROM collection_data.releases r,
                 jsonb_array_elements_text(COALESCE(r.styles,'[]'::jsonb)) AS style_val
-           WHERE r.label IS NOT NULL ${styleClause}
+           WHERE r.label IS NOT NULL AND style_val = $1
            GROUP BY r.label ORDER BY cnt DESC LIMIT 12`,
           styleParam,
         ),
@@ -214,7 +218,7 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
           `SELECT r.artist, COUNT(*) AS cnt
            FROM collection_data.releases r,
                 jsonb_array_elements_text(COALESCE(r.styles,'[]'::jsonb)) AS style_val
-           WHERE r.artist IS NOT NULL AND r.artist NOT ILIKE '%various%' ${styleClause}
+           WHERE r.artist IS NOT NULL AND r.artist NOT ILIKE '%various%' AND style_val = $1
            GROUP BY r.artist ORDER BY cnt DESC LIMIT 20`,
           styleParam,
         ),
@@ -222,7 +226,7 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
           `SELECT COUNT(*) AS cnt
            FROM collection_data.releases r,
                 jsonb_array_elements_text(COALESCE(r.styles,'[]'::jsonb)) AS style_val
-           WHERE 1=1 ${styleClause}`,
+           WHERE style_val = $1`,
           styleParam,
         ),
       ]);
@@ -231,61 +235,90 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
       const topArtists = artistRes.rows.map((r) => r.artist);
       const ownedCount = Number(countRes.rows[0]?.cnt ?? 0);
 
-      // Build feed query: label OR artist match, not yet owned
-      const feedParams: (string | number)[] = [];
-      const conditions: string[] = [];
+      // Case-insensitive sets for fast matching
+      const topLabelSet  = new Set(topLabels.map((l) => l.toLowerCase()));
+      const topArtistSet = new Set(topArtists.map((a) => a.toLowerCase()));
 
-      if (topLabels.length > 0) {
-        const ph = topLabels.map((_, i) => `$${feedParams.length + i + 1}`).join(', ');
-        feedParams.push(...topLabels);
-        conditions.push(`nrf.label IN (${ph})`);
-      }
-      if (topArtists.length > 0) {
-        const ph = topArtists.map((_, i) => `$${feedParams.length + i + 1}`).join(', ');
-        feedParams.push(...topArtists);
-        conditions.push(`nrf.artist IN (${ph})`);
-      }
-      // Also match style-sourced rows directly
-      if (style) {
-        feedParams.push(`style:${style}`);
-        conditions.push(`nrf.source = $${feedParams.length}`);
+      // Live Discogs search — locked to the exact style, vinyl only
+      const searchParams = new URLSearchParams({
+        style,
+        format:     'Vinyl',
+        sort:       'have',
+        sort_order: 'desc',
+        per_page:   '100',
+        type:       'release',
+      });
+
+      let discogsData: {
+        results?: {
+          id: number; title: string; year?: string | number;
+          label?: string[]; format?: string[];
+          genre?: string[]; style?: string[];
+          country?: string; cover_image?: string; thumb?: string;
+          community?: { have?: number; want?: number };
+        }[];
+        pagination?: { items: number };
+      };
+
+      try {
+        discogsData = await discogsGet(
+          `https://api.discogs.com/database/search?${searchParams}`,
+        ) as typeof discogsData;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        fastify.log.warn({ err }, 'Discogs API error in /discover/expand');
+        const isRateLimit = msg.includes('429');
+        return reply.status(503).send({
+          error: isRateLimit
+            ? 'Discogs rate limit hit — wait a few seconds and try again.'
+            : 'Discogs API unavailable — try again in a moment.',
+          detail: msg,
+        });
       }
 
-      let feedRows: unknown[] = [];
-      if (conditions.length > 0) {
-        feedParams.push(limit);
-        const feedRes = await pool.query(
-          `SELECT nrf.discogs_release_id, nrf.title, nrf.artist,
-                  nrf.year, nrf.label, nrf.format, nrf.genres, nrf.country, nrf.source
-           FROM   collection_data.new_releases_feed nrf
-           LEFT JOIN collection_data.releases r ON r.discogs_id = nrf.discogs_release_id
-           WHERE  r.release_id IS NULL
-           AND    (${conditions.join(' OR ')})
-           ORDER  BY nrf.discovered_at DESC
-           LIMIT  $${feedParams.length}`,
-          feedParams,
-        );
+      const { ownedIds, wantIds } = await getOwnedAndWanted();
 
-        const { ownedIds, wantIds } = await getOwnedAndWanted();
-        feedRows = (feedRes.rows as {
-          discogs_release_id: number; title: string; artist: string;
-          year: number | null; label: string | null; format: string | null;
-          genres: unknown; country: string | null; source: string;
-        }[]).map((r) => ({
-          ...r,
-          status: tagStatus(Number(r.discogs_release_id), ownedIds, wantIds),
-        }));
-      }
+      type MatchType = 'top-label' | 'top-artist' | 'style';
+      const RANK: Record<MatchType, number> = { 'top-label': 0, 'top-artist': 1, 'style': 2 };
+
+      const mapped = (discogsData.results ?? []).map((r) => {
+        // Discogs title format is "Artist - Title"
+        const parts = r.title.split(' - ');
+        const artist = parts.length > 1 ? parts[0] : '';
+        const title  = parts.length > 1 ? parts.slice(1).join(' - ') : r.title;
+
+        const label      = (r.label ?? [])[0] ?? null;
+        const isTopLabel  = label  ? topLabelSet.has(label.toLowerCase())   : false;
+        const isTopArtist = artist ? topArtistSet.has(artist.toLowerCase()) : false;
+        const match: MatchType = isTopLabel ? 'top-label' : isTopArtist ? 'top-artist' : 'style';
+
+        return {
+          discogs_release_id: r.id,
+          title,
+          artist,
+          year:    r.year != null ? Number(r.year) : null,
+          label,
+          format:  (r.format ?? [])[0] ?? null,
+          genres:  r.genre  ?? [],
+          country: r.country ?? null,
+          thumb:   r.cover_image ?? r.thumb ?? null,
+          match,
+          status:  tagStatus(r.id, ownedIds, wantIds),
+        };
+      });
+
+      // Sort: top-label → top-artist → rest; Discogs already sorted by have count within each tier
+      const results = mapped
+        .sort((a, b) => RANK[a.match as MatchType] - RANK[b.match as MatchType])
+        .slice(0, limit);
 
       return reply.send({
-        style:       style ?? 'all',
+        style,
         owned_count: ownedCount,
         topLabels,
         topArtists,
-        results:     feedRows,
-        feed_tip:    feedRows.length === 0
-          ? 'Hit ↻ Sync in New Releases to populate the feed with style-based results, then try again.'
-          : null,
+        results,
+        feed_tip: null,
       });
     },
   );
