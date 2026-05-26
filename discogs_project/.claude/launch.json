@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "react",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/joeyfoley/cursor_1/discogs_project/apps/react-frontend",
+      "port": 5173
+    }
+  ]
+}

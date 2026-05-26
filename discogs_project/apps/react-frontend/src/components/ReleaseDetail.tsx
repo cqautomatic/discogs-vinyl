@@ -117,9 +117,9 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
                     <tr>
                       <th>Community</th>
                       <td>
-                        {release.community_average_rating.toFixed(2)}
+                        {Number(release.community_average_rating).toFixed(2)}
                         {release.community_rating_count != null
-                          ? ` (${release.community_rating_count.toLocaleString()} votes)`
+                          ? ` (${Number(release.community_rating_count).toLocaleString()} votes)`
                           : ''}
                       </td>
                     </tr>
@@ -128,9 +128,9 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
                     <tr>
                       <th>Have / Want</th>
                       <td>
-                        {release.community_have_count.toLocaleString()}
+                        {Number(release.community_have_count).toLocaleString()}
                         {' / '}
-                        {release.community_want_count?.toLocaleString() ?? '—'}
+                        {Number(release.community_want_count).toLocaleString() ?? '—'}
                       </td>
                     </tr>
                   )}
@@ -143,7 +143,7 @@ function ReleaseDetail({ releaseId, onClose }: Props) {
                   {release.num_for_sale != null && (
                     <tr>
                       <th>For Sale</th>
-                      <td>{release.num_for_sale.toLocaleString()}</td>
+                      <td>{Number(release.num_for_sale).toLocaleString()}</td>
                     </tr>
                   )}
                 </tbody>

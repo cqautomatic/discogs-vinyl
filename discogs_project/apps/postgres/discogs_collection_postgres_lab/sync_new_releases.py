@@ -33,7 +33,7 @@ RATE_DELAY = 1.1   # seconds between API calls
 def search_discogs(params: dict) -> list:
     url = "https://api.discogs.com/database/search"
     try:
-        resp = requests.get(url, headers=HEADERS, params={**params, "per_page": 20, "type": "release"}, timeout=15)
+        resp = requests.get(url, headers=HEADERS, params={**params, "per_page": 25, "type": "release", "format": "Vinyl"}, timeout=15)
         resp.raise_for_status()
         return resp.json().get("results", [])
     except requests.exceptions.RequestException as exc:
@@ -46,6 +46,17 @@ def search_discogs(params: dict) -> list:
 def insert_result(cur, result: dict, owned_ids: set, source: str) -> tuple[int, int]:
     release_id = result.get("id")
     if not release_id or release_id in owned_ids:
+        return 0, 1
+
+    # Skip non-vinyl formats (CDs, cassettes, etc.)
+    formats = [f.lower() for f in (result.get("format") or [])]
+    if formats and not any("vinyl" in f or '12"' in f or '7"' in f or '10"' in f or "lp" in f for f in formats):
+        return 0, 1
+
+    # Skip genres not in user's collection taste
+    WANTED_GENRES = {"electronic", "funk / soul", "funk/soul", "jazz", "hip hop", "reggae", "latin", "soul"}
+    result_genres = {g.lower() for g in (result.get("genre") or [])}
+    if result_genres and not result_genres.intersection(WANTED_GENRES):
         return 0, 1
 
     raw_title = result.get("title", "")
