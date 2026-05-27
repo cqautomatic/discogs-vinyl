@@ -28,13 +28,20 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Shared result row ─────────────────────────────────────────────────────────
 
+const MATCH_TAG: Record<string, { label: string; color: string }> = {
+  'top-label':  { label: '★ your label',  color: '#ce93d8' },
+  'top-artist': { label: '♪ your artist', color: '#80cbc4' },
+};
+
 function ResultRow({
-  thumb, title, artist, year, label, status, discogsId,
+  thumb, title, artist, year, label, status, discogsId, matchTag,
 }: {
   thumb: string | null; title: string; artist?: string; year?: number | null;
   label?: string | null; status: string; discogsId?: number | null;
+  matchTag?: string;
 }) {
   const [imgErr, setImgErr] = useState(false);
+  const tag = matchTag ? MATCH_TAG[matchTag] : null;
   return (
     <div style={{
       display: 'flex', gap: '12px', alignItems: 'center',
@@ -56,16 +63,19 @@ function ResultRow({
         <div style={{ fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {title}
         </div>
-        {artist && (
-          <div style={{ fontSize: '0.8rem', color: 'var(--txt-2)', marginTop: 1 }}>
-            {artist}{year ? ` · ${year}` : ''}{label ? ` · ${label}` : ''}
-          </div>
-        )}
-        {!artist && (year || label) && (
-          <div style={{ fontSize: '0.8rem', color: 'var(--txt-2)', marginTop: 1 }}>
-            {year}{label ? ` · ${label}` : ''}
-          </div>
-        )}
+        <div style={{ fontSize: '0.8rem', color: 'var(--txt-2)', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {artist ?? ''}{year ? ` · ${year}` : ''}{label ? ` · ${label}` : ''}
+          </span>
+          {tag && (
+            <span style={{
+              fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.05em',
+              color: tag.color, textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              {tag.label}
+            </span>
+          )}
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
         <StatusBadge status={status} />
@@ -107,14 +117,13 @@ function StyleExplorer() {
     }
   }
 
-  const gaps     = results.filter((r) => r.status === 'gap');
   const wantlist = results.filter((r) => r.status === 'wantlist');
-  const owned    = results.filter((r) => r.status === 'owned');
+  const gaps     = results.filter((r) => r.status === 'gap');
 
   return (
     <div>
       <p style={{ fontSize: '0.85rem', color: 'var(--txt-2)', marginBottom: '1rem' }}>
-        Search Discogs live by style or genre. Returns the most-collected vinyl you don&apos;t own yet.
+        Search Discogs live by style or genre. Returns vinyl you don&apos;t own yet — ranked by want count, wantlist items first.
       </p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem' }}>
         <input
@@ -142,27 +151,13 @@ function StyleExplorer() {
         <>
           <div style={{ display: 'flex', gap: '16px', marginBottom: '1rem', fontSize: '0.83rem', color: 'var(--txt-2)' }}>
             <span>~{total.toLocaleString()} releases on Discogs</span>
-            <span style={{ color: '#64b5f6' }}>● {gaps.length} gaps</span>
             <span style={{ color: '#ffb300' }}>● {wantlist.length} on wantlist</span>
-            <span style={{ color: '#4caf50' }}>● {owned.length} owned</span>
+            <span style={{ color: '#64b5f6' }}>● {gaps.length} gaps</span>
           </div>
-
-          {gaps.length > 0 && (
-            <>
-              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
-                Gaps — vinyl you don&apos;t own
-              </h4>
-              {gaps.map((r) => (
-                <ResultRow key={r.id} thumb={r.thumb}
-                  title={r.title} year={r.year} label={r.label}
-                  status={r.status} discogsId={r.id} />
-              ))}
-            </>
-          )}
 
           {wantlist.length > 0 && (
             <>
-              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '1rem 0 4px' }}>
+              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
                 On your wantlist
               </h4>
               {wantlist.map((r) => (
@@ -173,12 +168,12 @@ function StyleExplorer() {
             </>
           )}
 
-          {owned.length > 0 && (
+          {gaps.length > 0 && (
             <>
-              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '1rem 0 4px' }}>
-                Already owned
+              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--txt-2)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: wantlist.length > 0 ? '1rem 0 4px' : '0 0 4px' }}>
+                Gaps — not in your collection
               </h4>
-              {owned.map((r) => (
+              {gaps.map((r) => (
                 <ResultRow key={r.id} thumb={r.thumb}
                   title={r.title} year={r.year} label={r.label}
                   status={r.status} discogsId={r.id} />
@@ -288,27 +283,17 @@ function CollectionExpander() {
                 {result.results.length} {result.style} releases — sorted by your collection DNA
               </h4>
               {result.results.map((r) => (
-                <div key={r.discogs_release_id} style={{ position: 'relative' }}>
-                  {(r.match === 'top-label' || r.match === 'top-artist') && (
-                    <span style={{
-                      position: 'absolute', top: 14, right: 0,
-                      fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
-                      color: r.match === 'top-label' ? '#ce93d8' : '#80cbc4',
-                      textTransform: 'uppercase',
-                    }}>
-                      {r.match === 'top-label' ? '★ your label' : '♪ your artist'}
-                    </span>
-                  )}
-                  <ResultRow
-                    thumb={r.thumb}
-                    title={r.title}
-                    artist={r.artist}
-                    year={r.year}
-                    label={r.label}
-                    status={r.status}
-                    discogsId={r.discogs_release_id}
-                  />
-                </div>
+                <ResultRow
+                  key={r.discogs_release_id}
+                  thumb={r.thumb}
+                  title={r.title}
+                  artist={r.artist}
+                  year={r.year}
+                  label={r.label}
+                  status={r.status}
+                  discogsId={r.discogs_release_id}
+                  matchTag={r.match}
+                />
               ))}
             </>
           ) : (

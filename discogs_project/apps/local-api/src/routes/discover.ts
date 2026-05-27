@@ -123,24 +123,23 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
 
       const params = new URLSearchParams({
         format:     'Vinyl',
-        sort:       'have',
+        sort:       'want',
         sort_order: 'desc',
-        per_page:   String(Math.min(limit, 100)),
+        per_page:   '100',           // fetch max to survive dedup + owned filter
         type:       'release',
       });
       if (style) params.set('style', style);
       if (genre) params.set('genre', genre);
 
-      let data: {
-        results?: {
-          id: number; title: string; year?: number;
-          label?: string[]; format?: string[];
-          genre?: string[]; style?: string[];
-          country?: string; cover_image?: string; thumb?: string;
-          community?: { have?: number; want?: number };
-        }[];
-        pagination?: { items: number };
+      type DiscogsResult = {
+        id: number; title: string; year?: number; master_id?: number;
+        label?: string[]; format?: string[];
+        genre?: string[]; style?: string[];
+        country?: string; cover_image?: string; thumb?: string;
+        community?: { have?: number; want?: number };
       };
+
+      let data: { results?: DiscogsResult[]; pagination?: { items: number } };
 
       try {
         data = await discogsGet(`https://api.discogs.com/database/search?${params}`) as typeof data;
@@ -158,22 +157,48 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
 
       const { ownedIds, wantIds } = await getOwnedAndWanted();
 
-      const results = (data.results ?? []).map((r) => ({
-        id:            r.id,
-        title:         r.title,
-        year:          r.year != null ? Number(r.year) : null,
-        label:         (r.label ?? [])[0] ?? null,
-        format:        (r.format ?? [])[0] ?? null,
-        genres:        r.genre  ?? [],
-        styles:        r.style  ?? [],
-        country:       r.country ?? null,
-        thumb:         r.cover_image ?? r.thumb ?? null,
+      // Tag all results, then filter owned + deduplicate by master_id
+      const tagged = (data.results ?? []).map((r) => ({
+        id:             r.id,
+        master_id:      r.master_id ?? null,
+        title:          r.title,
+        year:           r.year != null ? Number(r.year) : null,
+        label:          (r.label ?? [])[0] ?? null,
+        format:         (r.format ?? [])[0] ?? null,
+        genres:         r.genre  ?? [],
+        styles:         r.style  ?? [],
+        country:        r.country ?? null,
+        thumb:          r.cover_image ?? r.thumb ?? null,
         community_have: r.community?.have ?? null,
         community_want: r.community?.want ?? null,
-        status:        tagStatus(r.id, ownedIds, wantIds),
+        status:         tagStatus(r.id, ownedIds, wantIds),
       }));
 
-      return reply.send({ results, total: data.pagination?.items ?? results.length });
+      // Remove owned; deduplicate by master_id keeping highest-want version
+      const masterSeen = new Map<number, typeof tagged[0]>();
+      const results: typeof tagged = [];
+      for (const item of tagged) {
+        if (item.status === 'owned') continue;
+        if (item.master_id) {
+          const prev = masterSeen.get(item.master_id);
+          if (!prev || (item.community_want ?? 0) > (prev.community_want ?? 0)) {
+            masterSeen.set(item.master_id, item);
+          }
+        } else {
+          results.push(item);
+        }
+      }
+      results.push(...masterSeen.values());
+
+      // Sort: wantlist first, then gaps; within each group by want count desc
+      results.sort((a, b) => {
+        const statusRank = (s: string) => s === 'wantlist' ? 0 : 1;
+        const sr = statusRank(a.status) - statusRank(b.status);
+        if (sr !== 0) return sr;
+        return (b.community_want ?? 0) - (a.community_want ?? 0);
+      });
+
+      return reply.send({ results: results.slice(0, limit), total: data.pagination?.items ?? results.length });
     },
   );
 
@@ -239,19 +264,19 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
       const topLabelSet  = new Set(topLabels.map((l) => l.toLowerCase()));
       const topArtistSet = new Set(topArtists.map((a) => a.toLowerCase()));
 
-      // Live Discogs search — locked to the exact style, vinyl only
+      // Live Discogs search — locked to the exact style, vinyl only, sorted by want
       const searchParams = new URLSearchParams({
         style,
         format:     'Vinyl',
-        sort:       'have',
+        sort:       'want',
         sort_order: 'desc',
-        per_page:   '100',
+        per_page:   '100',           // fetch max to survive dedup + owned filter
         type:       'release',
       });
 
       let discogsData: {
         results?: {
-          id: number; title: string; year?: string | number;
+          id: number; title: string; year?: string | number; master_id?: number;
           label?: string[]; format?: string[];
           genre?: string[]; style?: string[];
           country?: string; cover_image?: string; thumb?: string;
@@ -294,6 +319,7 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
 
         return {
           discogs_release_id: r.id,
+          master_id:  r.master_id ?? null,
           title,
           artist,
           year:    r.year != null ? Number(r.year) : null,
@@ -302,14 +328,35 @@ const discoverRoutes: FastifyPluginAsync = async (fastify) => {
           genres:  r.genre  ?? [],
           country: r.country ?? null,
           thumb:   r.cover_image ?? r.thumb ?? null,
+          community_want: r.community?.want ?? null,
           match,
           status:  tagStatus(r.id, ownedIds, wantIds),
         };
       });
 
-      // Sort: top-label → top-artist → rest; Discogs already sorted by have count within each tier
-      const results = mapped
-        .sort((a, b) => RANK[a.match as MatchType] - RANK[b.match as MatchType])
+      // Remove owned; deduplicate by master_id keeping highest-want version
+      const masterSeen = new Map<number, typeof mapped[0]>();
+      const deduped: typeof mapped = [];
+      for (const item of mapped) {
+        if (item.status === 'owned') continue;
+        if (item.master_id) {
+          const prev = masterSeen.get(item.master_id);
+          if (!prev || (item.community_want ?? 0) > (prev.community_want ?? 0)) {
+            masterSeen.set(item.master_id, item);
+          }
+        } else {
+          deduped.push(item);
+        }
+      }
+      deduped.push(...masterSeen.values());
+
+      // Sort: top-label → top-artist → rest; within each tier by want count desc
+      const results = deduped
+        .sort((a, b) => {
+          const rankDiff = RANK[a.match as MatchType] - RANK[b.match as MatchType];
+          if (rankDiff !== 0) return rankDiff;
+          return (b.community_want ?? 0) - (a.community_want ?? 0);
+        })
         .slice(0, limit);
 
       return reply.send({
