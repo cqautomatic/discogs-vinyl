@@ -42,37 +42,30 @@ def refresh_prices(batch_limit: int = None):
     conn.autocommit = False
     try:
         cur = conn.cursor()
-        # candidates: missing prices or stale prices (>24h)
+        # candidates: owned collection + wantlist, missing prices or stale (>24h)
+        stale_clause = "(p.discogs_release_id IS NULL OR p.last_seen < NOW() - INTERVAL '24 hours')"
+        base_sql = f"""
+            WITH candidates AS (
+              SELECT DISTINCT r.discogs_id AS rid
+              FROM collection_data.releases r
+              LEFT JOIN collection_data.release_prices p
+                 ON p.discogs_release_id = r.discogs_id
+              WHERE r.discogs_id IS NOT NULL AND {stale_clause}
+
+              UNION
+
+              SELECT DISTINCT w.discogs_release_id AS rid
+              FROM collection_data.wantlist w
+              LEFT JOIN collection_data.release_prices p
+                 ON p.discogs_release_id = w.discogs_release_id
+              WHERE w.discogs_release_id IS NOT NULL AND {stale_clause}
+            )
+            SELECT rid FROM candidates
+        """
         if batch_limit:
-            cur.execute(
-                """
-                WITH candidates AS (
-                  SELECT DISTINCT r.discogs_id AS rid
-                  FROM collection_data.releases r
-                  LEFT JOIN collection_data.release_prices p
-                     ON p.discogs_release_id = r.discogs_id
-                  WHERE r.discogs_id IS NOT NULL
-                    AND (p.discogs_release_id IS NULL OR p.last_seen < NOW() - INTERVAL '24 hours')
-                  LIMIT %s
-                )
-                SELECT rid FROM candidates
-                """,
-                (batch_limit,)
-            )
+            cur.execute(base_sql + " LIMIT %s", (batch_limit,))
         else:
-            cur.execute(
-                """
-                WITH candidates AS (
-                  SELECT DISTINCT r.discogs_id AS rid
-                  FROM collection_data.releases r
-                  LEFT JOIN collection_data.release_prices p
-                     ON p.discogs_release_id = r.discogs_id
-                  WHERE r.discogs_id IS NOT NULL
-                    AND (p.discogs_release_id IS NULL OR p.last_seen < NOW() - INTERVAL '24 hours')
-                )
-                SELECT rid FROM candidates
-                """
-            )
+            cur.execute(base_sql)
         rows = cur.fetchall()
         total_releases = len(rows)
         print(f"Found {total_releases} releases to process")

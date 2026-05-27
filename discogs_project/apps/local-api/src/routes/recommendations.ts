@@ -139,9 +139,19 @@ LEFT JOIN releases r ON r.discogs_id = w.discogs_release_id
 WHERE rp.lowest_price IS NOT NULL
   AND rp.lowest_price <= $1
   AND rp.availability = true
-  AND r.community_have_count > 0
-  AND (r.community_want_count::decimal / NULLIF(r.community_have_count, 0)) >= $2
-ORDER BY want_have_ratio DESC, rp.lowest_price ASC
+  AND (
+    -- Has community stats from the owned-collection join: apply want/have ratio filter
+    (r.community_have_count > 0
+      AND (r.community_want_count::decimal / NULLIF(r.community_have_count, 0)) >= $2)
+    OR
+    -- Wantlist-only (not in collection): use scarcity as proxy — few copies for sale
+    (r.release_id IS NULL AND (rp.num_for_sale IS NULL OR rp.num_for_sale <= 20))
+  )
+ORDER BY
+  -- Prioritise items we have community ratio data for
+  CASE WHEN r.community_have_count IS NOT NULL THEN 0 ELSE 1 END,
+  want_have_ratio DESC NULLS LAST,
+  rp.lowest_price ASC
 LIMIT $3
 `;
 
@@ -161,15 +171,22 @@ LEFT JOIN release_prices rp ON w.discogs_release_id = rp.discogs_release_id
 `;
 
 const COMPLETE_DECADE_QUERY = `
-WITH decade_coverage AS (
+WITH wantlist_decades AS (
+  -- Only consider decades where the user actually has wantlist items
+  SELECT DISTINCT (year / 10) * 10 AS decade_start
+  FROM wantlist
+  WHERE year IS NOT NULL AND year > 0
+),
+decade_coverage AS (
+  -- Coverage of those decades in the owned collection (least-covered first)
   SELECT
-    (year / 10) * 10 AS decade_start,
-    COUNT(*) AS releases_owned
-  FROM releases
-  WHERE year IS NOT NULL
-  GROUP BY (year / 10) * 10
+    wd.decade_start,
+    COALESCE(COUNT(r.release_id), 0) AS releases_owned
+  FROM wantlist_decades wd
+  LEFT JOIN releases r ON (r.year / 10) * 10 = wd.decade_start AND r.year > 0
+  GROUP BY wd.decade_start
   ORDER BY releases_owned ASC
-  LIMIT 2
+  LIMIT 3
 )
 SELECT
   w.discogs_release_id, w.title, w.artist, w.year, w.label, w.format,
@@ -181,8 +198,8 @@ SELECT
 FROM wantlist w
 LEFT JOIN release_prices rp ON w.discogs_release_id = rp.discogs_release_id
 INNER JOIN decade_coverage dc ON (w.year / 10) * 10 = dc.decade_start
-WHERE w.year IS NOT NULL
-ORDER BY rp.lowest_price ASC NULLS LAST, w.year ASC
+WHERE w.year IS NOT NULL AND w.year > 0
+ORDER BY dc.releases_owned ASC, rp.lowest_price ASC NULLS LAST, w.year ASC
 LIMIT $1
 `;
 
