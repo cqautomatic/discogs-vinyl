@@ -7,6 +7,8 @@ import CommandCenterView from './components/CommandCenterView';
 import RecommendationsView from './components/RecommendationsView';
 import NewReleasesView from './components/NewReleasesView';
 import DiggingView from './components/DiggingView';
+import OfflineView from './components/OfflineView';
+import SyncPanel from './components/SyncPanel';
 import ReleaseDetail from './components/ReleaseDetail';
 import type { DrillField } from './components/ReleaseDetail';
 import { searchReleases } from './api';
@@ -15,10 +17,20 @@ import './App.css';
 
 const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
 
-type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | 'new-releases' | 'dig';
+type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | 'new-releases' | 'dig' | 'offline';
 
 function App() {
   const [view, setView] = useState<View>('overview');
+
+  // ── Online status ─────────────────────────────────────────────────────────────
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const up   = () => setIsOnline(true);
+    const down = () => setIsOnline(false);
+    window.addEventListener('online',  up);
+    window.addEventListener('offline', down);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+  }, []);
 
   // ── Recommendations badge ─────────────────────────────────────────────────────
   const [availableNow, setAvailableNow] = useState(0);
@@ -119,7 +131,17 @@ function App() {
           >
             Discover
           </button>
+          <button
+            className={`nav-btn${view === 'offline' ? ' active' : ''}`}
+            onClick={() => setView('offline')}
+            type="button"
+          >
+            My Vinyl {!isOnline && <span style={{ fontSize: '0.65rem' }}>●</span>}
+          </button>
         </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <SyncPanel isOnline={isOnline} />
+        </div>
         <div className="header-search-wrap">
           <input
             className="header-search"
@@ -152,6 +174,7 @@ function App() {
         {view === 'discover'       && <RecommendationsView />}
         {view === 'new-releases'   && <NewReleasesView />}
         {view === 'dig'            && <DiggingView />}
+        {view === 'offline'        && <OfflineView />}
 
         {/* Header quick-search detail modal — lives outside the view tree */}
         {searchReleaseId !== null && (
