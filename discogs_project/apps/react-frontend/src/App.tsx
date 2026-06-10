@@ -3,24 +3,24 @@ import StatsOverview from './components/StatsOverview';
 import BrowseView from './components/BrowseView';
 import type { BrowseFilters } from './components/BrowseView';
 import SearchView from './components/SearchView';
-import CommandCenterView from './components/CommandCenterView';
-import RecommendationsView from './components/RecommendationsView';
-import NewReleasesView from './components/NewReleasesView';
-import DiggingView from './components/DiggingView';
+import FindView from './components/FindView';
 import OfflineView from './components/OfflineView';
+import StoreView from './components/StoreView';
 import SyncPanel from './components/SyncPanel';
 import ReleaseDetail from './components/ReleaseDetail';
 import type { DrillField } from './components/ReleaseDetail';
-import { searchReleases } from './api';
+import { searchReleases, onCacheHit } from './api';
+import type { CacheHit } from './api';
 import type { Release } from './types';
 import './App.css';
 
-const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
 
-type View = 'overview' | 'browse' | 'search' | 'command-center' | 'discover' | 'new-releases' | 'dig' | 'offline';
+type View = 'overview' | 'browse' | 'search' | 'find' | 'offline' | 'store';
 
 function App() {
-  const [view, setView] = useState<View>('overview');
+  // Default to offline view when running as installed PWA (no browser chrome)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const [view, setView] = useState<View>(isStandalone ? 'offline' : 'overview');
 
   // ── Online status ─────────────────────────────────────────────────────────────
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -32,14 +32,10 @@ function App() {
     return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
   }, []);
 
-  // ── Recommendations badge ─────────────────────────────────────────────────────
-  const [availableNow, setAvailableNow] = useState(0);
-  useEffect(() => {
-    fetch(`${API_BASE}/api/recommendations/health`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.health?.available_now) setAvailableNow(Number(d.health.available_now) || 0); })
-      .catch(() => {});
-  }, []);
+  // ── Offline cache banner ───────────────────────────────────────────────────
+  const [cacheHit, setCacheHit] = useState<CacheHit | null>(null);
+  useEffect(() => onCacheHit(setCacheHit), []);
+
 
   // ── Header search ─────────────────────────────────────────────────────────────
   const [searchQ, setSearchQ] = useState('');
@@ -104,32 +100,11 @@ function App() {
             Search
           </button>
           <button
-            className={`nav-btn${view === 'new-releases' ? ' active' : ''}`}
-            onClick={() => setView('new-releases')}
+            className={`nav-btn${view === 'find' ? ' active' : ''}`}
+            onClick={() => setView('find')}
             type="button"
           >
-            New Releases
-          </button>
-          <button
-            className={`nav-btn${view === 'dig' ? ' active' : ''}`}
-            onClick={() => setView('dig')}
-            type="button"
-          >
-            Dig
-          </button>
-          <button
-            className={`nav-btn${view === 'command-center' ? ' active' : ''}`}
-            onClick={() => setView('command-center')}
-            type="button"
-          >
-            Command Center{availableNow > 0 && <span className="nav-badge">{availableNow}</span>}
-          </button>
-          <button
-            className={`nav-btn${view === 'discover' ? ' active' : ''}`}
-            onClick={() => setView('discover')}
-            type="button"
-          >
-            Discover
+            Find
           </button>
           <button
             className={`nav-btn${view === 'offline' ? ' active' : ''}`}
@@ -138,10 +113,19 @@ function App() {
           >
             My Vinyl {!isOnline && <span style={{ fontSize: '0.65rem' }}>●</span>}
           </button>
+          <button
+            className={`nav-btn${view === 'store' ? ' active' : ''}`}
+            onClick={() => setView('store')}
+            type="button"
+          >
+            Store
+          </button>
         </nav>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <SyncPanel isOnline={isOnline} />
-        </div>
+        {isStandalone && (
+          <div className="header-actions">
+            <SyncPanel isOnline={isOnline} />
+          </div>
+        )}
         <div className="header-search-wrap">
           <input
             className="header-search"
@@ -166,15 +150,22 @@ function App() {
           )}
         </div>
       </header>
+      {cacheHit && (
+        <div className="cache-banner" role="status">
+          📵 Offline — showing cached data from{' '}
+          {new Date(cacheHit.cachedAt).toLocaleString([], {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })}
+        </div>
+      )}
       <main className="app-main">
         {view === 'overview'       && <StatsOverview />}
         {view === 'browse'         && <BrowseView externalFilters={browseFilters} />}
         {view === 'search'         && <SearchView onDrill={handleGlobalDrill} />}
-        {view === 'command-center' && <CommandCenterView />}
-        {view === 'discover'       && <RecommendationsView />}
-        {view === 'new-releases'   && <NewReleasesView />}
-        {view === 'dig'            && <DiggingView />}
+        {view === 'find'           && <FindView />}
         {view === 'offline'        && <OfflineView />}
+        {view === 'store'          && <StoreView />}
 
         {/* Header quick-search detail modal — lives outside the view tree */}
         {searchReleaseId !== null && (

@@ -1,3 +1,4 @@
+import ApiErrorBanner from './ApiErrorBanner';
 import { useState, useEffect } from 'react';
 import { getStats } from '../api';
 import type { Stats, PgNum } from '../types';
@@ -57,7 +58,7 @@ function StatsOverview() {
   }, []);
 
   if (loading) return <div className="loading">Loading stats...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
+  if (error) return <ApiErrorBanner error={error} />;
   if (!stats) return null;
 
   const earliest = toNum(stats.earliest_year);

@@ -7,6 +7,7 @@ const WANTLIST_QUERY = `
 SELECT
   w.discogs_release_id, w.title, w.artist, w.year, w.label, w.format,
   w.genres, w.styles, w.notes, w.rating, w.added,
+  (w.basic_information->>'master_id')::int AS master_id,
   rp.lowest_price, rp.currency, rp.num_for_sale, rp.availability,
   rp.last_seen AS price_last_seen
 FROM wantlist w
@@ -35,7 +36,7 @@ LIMIT $2
 
 const HIGH_DEMAND_QUERY = `
 SELECT
-  release_id, title, artist, year, label,
+  release_id, discogs_id, title, artist, year, label,
   community_want_count, community_have_count,
   ROUND(
     (community_want_count::decimal / NULLIF(community_have_count, 0))::numeric, 2
@@ -91,23 +92,61 @@ my_genres AS (
 ),
 my_artists AS (
   SELECT DISTINCT LOWER(TRIM(artist)) AS artist FROM releases WHERE artist IS NOT NULL
+),
+similar_base AS (
+  SELECT
+    w.artist AS wantlist_artist,
+    COUNT(DISTINCT w.discogs_release_id) AS wantlist_count,
+    ARRAY_AGG(DISTINCT w.label) FILTER (WHERE w.label IN (SELECT label FROM my_labels)) AS shared_labels
+  FROM wantlist w
+  WHERE LOWER(TRIM(w.artist)) NOT IN (SELECT artist FROM my_artists)
+    AND w.artist IS NOT NULL AND w.artist != ''
+    AND (
+      w.label IN (SELECT label FROM my_labels)
+      OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements_text(COALESCE(w.genres, '[]'::jsonb)) g
+        WHERE g IN (SELECT genre FROM my_genres)
+      )
+    )
+  GROUP BY w.artist
 )
 SELECT
-  w.artist,
-  COUNT(DISTINCT w.discogs_release_id) AS wantlist_count,
-  ARRAY_AGG(DISTINCT w.label) FILTER (WHERE w.label IN (SELECT label FROM my_labels)) AS shared_labels
-FROM wantlist w
-WHERE LOWER(TRIM(w.artist)) NOT IN (SELECT artist FROM my_artists)
-  AND w.artist IS NOT NULL AND w.artist != ''
-  AND (
-    w.label IN (SELECT label FROM my_labels)
-    OR EXISTS (
-      SELECT 1 FROM jsonb_array_elements_text(COALESCE(w.genres, '[]'::jsonb)) g
-      WHERE g IN (SELECT genre FROM my_genres)
-    )
-  )
-GROUP BY w.artist
-ORDER BY wantlist_count DESC
+  sb.wantlist_artist AS artist,
+  sb.wantlist_count,
+  sb.shared_labels,
+  ARRAY(
+    SELECT DISTINCT r.artist
+    FROM releases r
+    WHERE sb.shared_labels IS NOT NULL
+      AND r.label = ANY(sb.shared_labels)
+      AND r.artist IS NOT NULL
+      AND LOWER(TRIM(r.artist)) != LOWER(TRIM(sb.wantlist_artist))
+    LIMIT 4
+  ) AS similar_to_artists,
+  (
+    SELECT w2.title
+    FROM wantlist w2
+    WHERE LOWER(TRIM(w2.artist)) = LOWER(TRIM(sb.wantlist_artist))
+    ORDER BY COALESCE(w2.community_want_count, 0) DESC
+    LIMIT 1
+  ) AS top_release_title,
+  (
+    SELECT w2.discogs_release_id
+    FROM wantlist w2
+    WHERE LOWER(TRIM(w2.artist)) = LOWER(TRIM(sb.wantlist_artist))
+    ORDER BY COALESCE(w2.community_want_count, 0) DESC
+    LIMIT 1
+  ) AS top_release_discogs_id,
+  (
+    SELECT w2.basic_information->>'thumb'
+    FROM wantlist w2
+    WHERE LOWER(TRIM(w2.artist)) = LOWER(TRIM(sb.wantlist_artist))
+      AND w2.basic_information->>'thumb' IS NOT NULL
+    ORDER BY COALESCE(w2.community_want_count, 0) DESC
+    LIMIT 1
+  ) AS top_release_thumb
+FROM similar_base sb
+ORDER BY sb.wantlist_count DESC
 LIMIT $1
 `;
 
@@ -128,6 +167,7 @@ const AFFORDABLE_GRAILS_QUERY = `
 SELECT
   w.discogs_release_id, w.title, w.artist, w.year, w.label, w.format,
   w.genres, w.styles,
+  w.basic_information->>'thumb' AS thumb,
   rp.lowest_price, rp.currency, rp.num_for_sale,
   r.community_want_count, r.community_have_count,
   ROUND(

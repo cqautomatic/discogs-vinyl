@@ -1,43 +1,24 @@
+import ApiErrorBanner from './ApiErrorBanner';
 import { useState, useEffect } from 'react';
 import {
   getSimilarArtists,
   getAffordableGrails,
-  getCompleteDecade,
-  getGenreValueMap,
-  getLabelGaps,
-  getDecadeGaps,
-  getArtistGaps,
   getCollectionHealth,
 } from '../api';
 import type {
   SimilarArtist,
   AffordableGrail,
-  CompleteDecadeItem,
-  GenreValueEntry,
-  LabelGap,
-  DecadeGap,
-  ArtistGap,
   CollectionHealth,
   PgNum,
 } from '../types';
 
 type RecTab =
   | 'similar-artists'
-  | 'affordable-grails'
-  | 'complete-decade'
-  | 'genre-value-map'
-  | 'label-gaps'
-  | 'decade-gaps'
-  | 'artist-gaps';
+  | 'affordable-grails';
 
 const TAB_LABELS: Record<RecTab, string> = {
   'similar-artists': 'Similar Artists',
   'affordable-grails': 'Affordable Grails',
-  'complete-decade': 'Complete the Decade',
-  'genre-value-map': 'Genre Value Map',
-  'label-gaps': 'Label Gaps',
-  'decade-gaps': 'Decade Gaps',
-  'artist-gaps': 'Artist Gaps',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -60,6 +41,16 @@ function fmtDec(v: PgNum, digits = 2): string {
     maximumFractionDigits: digits,
   });
 }
+
+function discogsArtistUrl(name: string): string {
+  return `https://www.discogs.com/search/?q=${encodeURIComponent(name)}&type=artist`;
+}
+
+
+const linkStyle: React.CSSProperties = {
+  color: 'var(--accent)',
+  textDecoration: 'none',
+};
 
 // ── Shared table styles ───────────────────────────────────────────────────────
 
@@ -138,7 +129,7 @@ function SimilarArtistsPanel() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    getSimilarArtists(20)
+    getSimilarArtists(30)
       .then(r => setArtists(r.artists))
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Failed to load similar artists'),
@@ -147,7 +138,7 @@ function SimilarArtistsPanel() {
   }, []);
 
   if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
+  if (error) return <ApiErrorBanner error={error} />;
   if (artists.length === 0) return <div className="loading">No data available.</div>;
 
   return (
@@ -155,7 +146,7 @@ function SimilarArtistsPanel() {
       <table style={tableStyle}>
         <thead>
           <tr>
-            {['Artist', 'Wantlist Count', 'Shared Labels'].map(h => (
+            {['Artist', 'Similar To', 'Shared Labels', 'Wantlist'].map(h => (
               <th key={h} style={thStyle}>{h}</th>
             ))}
           </tr>
@@ -163,9 +154,25 @@ function SimilarArtistsPanel() {
         <tbody>
           {artists.map(a => (
             <tr key={a.artist}>
-              <td style={tdStyle}>{a.artist}</td>
-              <td style={tdStyle}>{toNum(a.wantlist_count) ?? '—'}</td>
+              <td style={tdStyle}>
+                <a href={discogsArtistUrl(a.artist)} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                  {a.artist}
+                </a>
+              </td>
+              <td style={tdStyle}>
+                {a.similar_to_artists && a.similar_to_artists.length > 0
+                  ? a.similar_to_artists.map((sa, i) => (
+                      <span key={sa}>
+                        <a href={discogsArtistUrl(sa)} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                          {sa}
+                        </a>
+                        {i < a.similar_to_artists!.length - 1 ? ', ' : ''}
+                      </span>
+                    ))
+                  : '—'}
+              </td>
               <td style={tdStyle}>{a.shared_labels ? a.shared_labels.join(', ') : '—'}</td>
+              <td style={tdStyle}>{toNum(a.wantlist_count) ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -206,21 +213,6 @@ function AffordableGrailsPanel() {
     fontSize: 13,
     width: 80,
   };
-
-  function exportGrailsCSV(items: AffordableGrail[]) {
-    const header = 'Artist,Title,Year,Label,Price,Currency,For Sale,Want,Have,Ratio';
-    const rows = items.map((i) =>
-      [i.artist, i.title, i.year ?? '', i.label ?? '',
-       Number(i.lowest_price ?? 0).toFixed(2), i.currency ?? '',
-       i.num_for_sale ?? 0, i.community_want_count ?? 0,
-       i.community_have_count ?? 0, Number(i.want_have_ratio ?? 0).toFixed(2)].join(',')
-    );
-    const csv = [header, ...rows].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = 'grails.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -266,11 +258,10 @@ function AffordableGrailsPanel() {
         </button>
       </div>
       {loading && <div className="loading">Loading...</div>}
-      {error && <div className="error-banner">{error}</div>}
+      {error && <ApiErrorBanner error={error} />}
       {!loading && !error && items.length === 0 && <div className="loading">No data available.</div>}
       {!loading && !error && items.length > 0 && (
         <div style={{ overflowX: 'auto' }}>
-          <button type="button" className="export-btn" onClick={() => exportGrailsCSV(items)}>Export CSV</button>
           <table style={tableStyle}>
             <thead>
               <tr>
@@ -282,8 +273,21 @@ function AffordableGrailsPanel() {
             <tbody>
               {items.map(item => (
                 <tr key={item.discogs_release_id}>
-                  <td style={tdStyle}>{item.artist}</td>
-                  <td style={tdStyle}>{item.title}</td>
+                  <td style={tdStyle}>
+                    <a href={discogsArtistUrl(item.artist)} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                      {item.artist}
+                    </a>
+                  </td>
+                  <td style={tdStyle}>
+                    <a
+                      href={`https://www.discogs.com/release/${item.discogs_release_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={linkStyle}
+                    >
+                      {item.title}
+                    </a>
+                  </td>
                   <td style={tdStyle}>{fmtUSD(item.lowest_price)}</td>
                   <td style={tdStyle}>{item.community_want_count ?? '—'}</td>
                   <td style={tdStyle}>{item.community_have_count ?? '—'}</td>
@@ -298,268 +302,6 @@ function AffordableGrailsPanel() {
   );
 }
 
-// ── Panel: Complete the Decade ────────────────────────────────────────────────
-
-function CompleteDecadePanel() {
-  const [items, setItems] = useState<CompleteDecadeItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getCompleteDecade(20)
-      .then(r => setItems(r.items))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load decade completions'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
-  if (items.length === 0) return <div className="loading">No data available.</div>;
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {['Decade', 'Artist', 'Title', 'Year', 'Price', 'Available'].map(h => (
-              <th key={h} style={thStyle}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item => (
-            <tr key={item.discogs_release_id}>
-              <td style={tdStyle}>{item.decade_label}</td>
-              <td style={tdStyle}>{item.artist}</td>
-              <td style={tdStyle}>{item.title}</td>
-              <td style={tdStyle}>{item.year ?? '—'}</td>
-              <td style={tdStyle}>{item.availability ? fmtUSD(item.lowest_price) : '—'}</td>
-              <td style={tdStyle}>
-                <span style={{ color: item.availability ? '#4ade80' : 'var(--txt-2)' }}>
-                  {item.availability ? 'Yes' : 'No'}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Panel: Genre Value Map ────────────────────────────────────────────────────
-
-function GenreValueMapPanel() {
-  const [genres, setGenres] = useState<GenreValueEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getGenreValueMap()
-      .then(r => {
-        const sorted = [...r.genres].sort((a, b) => {
-          const ra = toNum(a.avg_rating) ?? 0;
-          const rb = toNum(b.avg_rating) ?? 0;
-          return rb - ra;
-        });
-        setGenres(sorted);
-      })
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load genre value map'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
-  if (genres.length === 0) return <div className="loading">No data available.</div>;
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {['Genre', 'Wantlist Items', 'Avg Price', 'Avg Rating'].map(h => (
-              <th key={h} style={thStyle}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {genres.map(g => (
-            <tr key={g.genre}>
-              <td style={tdStyle}>{g.genre}</td>
-              <td style={tdStyle}>{toNum(g.wantlist_count) ?? '—'}</td>
-              <td style={tdStyle}>{fmtUSD(g.avg_price)}</td>
-              <td style={tdStyle}>{fmtDec(g.avg_rating)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Panel: Label Gaps ─────────────────────────────────────────────────────────
-
-function LabelGapsPanel() {
-  const [labels, setLabels] = useState<LabelGap[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getLabelGaps(15)
-      .then(r => setLabels(r.labels))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load label gaps'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
-  if (labels.length === 0) return <div className="loading">No data available.</div>;
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {['Label', 'Owned Releases', 'Artists', 'Avg Rating'].map(h => (
-              <th key={h} style={thStyle}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {labels.map(l => (
-            <tr key={l.label}>
-              <td style={tdStyle}>{l.label}</td>
-              <td style={tdStyle}>{toNum(l.owned_releases) ?? '—'}</td>
-              <td style={tdStyle}>{toNum(l.unique_artists) ?? '—'}</td>
-              <td style={tdStyle}>{fmtDec(l.avg_rating)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Panel: Decade Gaps ────────────────────────────────────────────────────────
-
-function DecadeGapsPanel() {
-  const [decades, setDecades] = useState<DecadeGap[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getDecadeGaps()
-      .then(r => setDecades(r.decades))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load decade gaps'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
-  if (decades.length === 0) return <div className="loading">No data available.</div>;
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {['Decade', 'Releases', 'Coverage'].map(h => (
-              <th key={h} style={thStyle}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {decades.map(d => {
-            const pct = Math.min(100, Math.max(0, toNum(d.coverage_pct) ?? 0));
-            return (
-              <tr key={d.decade_start}>
-                <td style={tdStyle}>{d.decade_label}</td>
-                <td style={tdStyle}>{toNum(d.releases_owned) ?? '—'}</td>
-                <td style={{ ...tdStyle, minWidth: 160 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: 1, background: 'var(--bg-2)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, background: '#4ade80', height: '8px' }} />
-                    </div>
-                    <span style={{ color: 'var(--txt-2)', fontSize: 11, whiteSpace: 'nowrap' }}>
-                      {pct.toFixed(1)}%
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Panel: Artist Gaps ────────────────────────────────────────────────────────
-
-function ArtistGapsPanel() {
-  const [artists, setArtists] = useState<ArtistGap[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getArtistGaps(20)
-      .then(r => setArtists(r.artists))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : 'Failed to load artist gaps'),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error-banner">{error}</div>;
-  if (artists.length === 0) return <div className="loading">No data available.</div>;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ color: 'var(--txt-2)', fontSize: 12 }}>
-        Artists with fewest owned releases — potential collection gaps
-      </p>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              {['Artist', 'Owned Releases', 'Avg Rating'].map(h => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {artists.map(a => (
-              <tr key={a.artist}>
-                <td style={tdStyle}>{a.artist}</td>
-                <td style={tdStyle}>{toNum(a.owned_releases) ?? '—'}</td>
-                <td style={tdStyle}>{fmtDec(a.avg_rating)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
 // ── RecommendationsView ───────────────────────────────────────────────────────
 
@@ -585,11 +327,6 @@ function RecommendationsView() {
       <div>
         {activeTab === 'similar-artists' && <SimilarArtistsPanel />}
         {activeTab === 'affordable-grails' && <AffordableGrailsPanel />}
-        {activeTab === 'complete-decade' && <CompleteDecadePanel />}
-        {activeTab === 'genre-value-map' && <GenreValueMapPanel />}
-        {activeTab === 'label-gaps' && <LabelGapsPanel />}
-        {activeTab === 'decade-gaps' && <DecadeGapsPanel />}
-        {activeTab === 'artist-gaps' && <ArtistGapsPanel />}
       </div>
     </div>
   );

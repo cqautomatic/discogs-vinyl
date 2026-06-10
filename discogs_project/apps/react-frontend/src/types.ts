@@ -132,11 +132,70 @@ export interface WantlistItem {
   notes: string | null;
   rating: number | null;
   added: string | null;
+  master_id: number | null;
   lowest_price: PgNum;
   currency: string | null;
   num_for_sale: number | null;
   availability: boolean | null;
   price_last_seen: string | null;
+}
+
+// ── /api/pressings/:masterId ──────────────────────────────────────────────────
+
+export interface PressingVersion {
+  discogs_release_id: number;
+  title: string;
+  label: string | null;
+  catno: string | null;
+  country: string | null;
+  year: number | null;
+  format: string;
+  lowest_price: number | null;
+  currency: string | null;
+  num_for_sale: number | null;
+  is_wantlist_pressing: boolean;
+  owned: boolean;
+}
+
+export interface PressingResponse {
+  master_id: number;
+  versions: PressingVersion[];
+  cached: boolean;
+  fetched_at: string | null;
+}
+
+// ── /api/store-check ──────────────────────────────────────────────────────────
+
+export interface StoreCheckResult {
+  discogs_release_id: number;
+  title: string;
+  artist: string;
+  year: number | null;
+  label: string | null;
+  catno: string | null;
+  format: string | null;
+  master_id: number | null;
+  owned: boolean;
+  owns_version: boolean;
+  wantlist: boolean;
+  lowest_price: PgNum;
+  currency: string | null;
+  num_for_sale: number | null;
+  low_sold_price: PgNum;
+  high_sold_price: PgNum;
+  last_sold_date: string | null;
+  source: 'local' | 'discogs';
+}
+
+export interface BandcampResult {
+  name: string;
+  band_name: string;
+  url: string;
+}
+
+export interface BandcampResponse {
+  results: BandcampResult[];
+  fallback_url: string;
 }
 
 export interface BudgetItem {
@@ -156,6 +215,7 @@ export interface BudgetItem {
 
 export interface HighDemandItem {
   release_id: number;
+  discogs_id: number;
   title: string;
   artist: string;
   year: number | null;
@@ -184,6 +244,10 @@ export interface SimilarArtist {
   artist: string;
   wantlist_count: PgNum;
   shared_labels: string[] | null;
+  similar_to_artists: string[] | null;
+  top_release_title: string | null;
+  top_release_discogs_id: number | null;
+  top_release_thumb: string | null;
 }
 
 export interface ArtistGap {
@@ -199,6 +263,7 @@ export interface AffordableGrail {
   year: number | null;
   label: string | null;
   format: string | null;
+  thumb: string | null;
   lowest_price: PgNum;
   currency: string | null;
   num_for_sale: number | null;
@@ -325,4 +390,18 @@ export interface NewRelease {
   country: string | null;
   source: string;
   discovered_at: string;
+  thumb: string | null;
+  in_wantlist: boolean;
+}
+
+export interface NewReleasePriceEntry {
+  lowest_price: number | null;
+  currency: string | null;
+  num_for_sale: number;
+}
+
+export interface NewReleasesResponse {
+  items: NewRelease[];
+  count: number;
+  latest_sync: string | null;
 }

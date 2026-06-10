@@ -51,7 +51,12 @@ export default function SyncPanel({ isOnline }: Props) {
   }
 
   function handleSaveUrl() {
-    const clean = editUrl.trim().replace(/\/$/, '');
+    let clean = editUrl.trim().replace(/\/$/, '');
+    // Prepend https:// if no protocol given
+    if (clean && !clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://' + clean;
+      setEditUrl(clean);
+    }
     setApiUrl(clean);
     saveApiUrl(clean);
   }
@@ -113,7 +118,7 @@ export default function SyncPanel({ isOnline }: Props) {
           {/* API URL config */}
           <div style={{ marginBottom: '10px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--txt-2)', marginBottom: '4px' }}>
-              API URL (your Mac's IP or Tailscale address)
+              API URL (defaults to this site — only change if needed)
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               <input

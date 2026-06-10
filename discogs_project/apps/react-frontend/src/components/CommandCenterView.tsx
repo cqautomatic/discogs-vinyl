@@ -50,23 +50,8 @@ function WantlistPanel() {
     return bv - av;
   });
 
-  function exportWantlistCSV(items: WantlistItem[]) {
-    const header = 'Title,Artist,Year,Label,Price,Currency,Available,For Sale';
-    const rows = items.map((i) =>
-      [i.title, i.artist, i.year ?? '', i.label ?? '',
-       Number(i.lowest_price ?? 0).toFixed(2), i.currency ?? '',
-       i.availability ? 'Yes' : 'No', i.num_for_sale ?? 0].join(',')
-    );
-    const csv = [header, ...rows].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = 'wantlist.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div style={{ overflowX: 'auto' }}>
-      <button type="button" className="export-btn" onClick={() => exportWantlistCSV(items)}>Export CSV</button>
       <table style={tableStyle}>
         <thead>
           <tr>
@@ -79,7 +64,16 @@ function WantlistPanel() {
           {sorted.map(item => (
             <tr key={item.discogs_release_id} style={trStyle}>
               <td style={tdStyle}>{item.artist}</td>
-              <td style={tdStyle}>{item.title}</td>
+              <td style={tdStyle}>
+                <a
+                  href={`https://www.discogs.com/release/${item.discogs_release_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                >
+                  {item.title}
+                </a>
+              </td>
               <td style={tdStyle}>{item.year ?? '—'}</td>
               <td style={tdStyle}>{item.label ?? '—'}</td>
               <td style={tdStyle}>
@@ -137,7 +131,16 @@ function HighDemandPanel() {
             return (
               <tr key={item.release_id} style={trStyle}>
                 <td style={tdStyle}>{item.artist}</td>
-                <td style={tdStyle}>{item.title}</td>
+                <td style={tdStyle}>
+                  <a
+                    href={`https://www.discogs.com/release/${item.discogs_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                  >
+                    {item.title}
+                  </a>
+                </td>
                 <td style={tdStyle}>{item.community_want_count ?? '—'}</td>
                 <td style={tdStyle}>{item.community_have_count ?? '—'}</td>
                 <td style={tdStyle}>
@@ -236,7 +239,16 @@ function BudgetPanel() {
               {items.map(item => (
                 <tr key={item.discogs_release_id} style={trStyle}>
                   <td style={tdStyle}>{item.artist}</td>
-                  <td style={tdStyle}>{item.title}</td>
+                  <td style={tdStyle}>
+                    <a
+                      href={`https://www.discogs.com/release/${item.discogs_release_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                    >
+                      {item.title}
+                    </a>
+                  </td>
                   <td style={tdStyle}>{item.label ?? '—'}</td>
                   <td style={tdStyle}>{fmtUSD(item.lowest_price)}</td>
                   <td style={tdStyle}>{item.num_for_sale ?? '—'}</td>

@@ -1,3 +1,4 @@
+import ApiErrorBanner from './ApiErrorBanner';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getReleases, getGenres, getStyles } from '../api';
 import type { SortOption } from '../api';
@@ -254,7 +255,7 @@ function BrowseView({ externalFilters }: BrowseViewProps) {
         )}
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <ApiErrorBanner error={error}  />}
 
       {loading ? (
         <div className="loading">Loading...</div>

@@ -1,3 +1,4 @@
+import ApiErrorBanner from './ApiErrorBanner';
 import { useState } from 'react';
 import { searchReleases } from '../api';
 import type { Release } from '../types';
@@ -61,7 +62,7 @@ function SearchView({ onDrill }: SearchViewProps) {
         </button>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <ApiErrorBanner error={error}  />}
       {loading && <div className="loading">Searching...</div>}
 
       {!loading && searched && (

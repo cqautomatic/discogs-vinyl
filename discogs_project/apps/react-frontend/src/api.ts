@@ -19,21 +19,77 @@ import type {
   CompleteDecadeItem,
   GenreValueEntry,
   ArtistPageData,
-  NewRelease,
+  NewReleasesResponse,
+  NewReleasePriceEntry,
   StyleResult,
   ExpandResult,
   DiscogsListMeta,
   DiscogsListDetail,
+  PressingResponse,
+  StoreCheckResult,
+  BandcampResponse,
 } from './types';
+import { cacheSet, cacheGet } from './lib/api-cache';
 
-// Default: direct to Node API (CORS is open to localhost:5173).
-// Set VITE_API_BASE_URL='' in .env.local to use the Vite dev proxy instead.
-const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
+// Default: same origin — the Fastify API serves the built frontend, so API
+// calls are relative. This is what makes the HTTPS PWA work with zero config.
+// Vite dev/preview ports (5173/4173) are the exception: they point at :3001.
+// Set VITE_API_BASE_URL in .env.local to override entirely.
+function resolveApiBase(): string {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  const { hostname, port, protocol } = window.location;
+  // Manual override from the sync panel — ignore http: URLs on an https page
+  // (mixed content is blocked by the browser anyway)
+  const saved = localStorage.getItem('vinyl-api-url');
+  if (saved && !(protocol === 'https:' && saved.startsWith('http://'))) return saved;
+  // Vite dev server / preview — API lives on a separate port (http only)
+  if ((port === '5173' || port === '4173') && protocol === 'http:') {
+    return `http://${hostname}:3001`;
+  }
+  return ''; // same origin
+}
+const API_BASE: string = resolveApiBase();
 
-async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, init);
+// ── Offline cache-hit state ───────────────────────────────────────────────────
+// When fetchJSON falls back to IndexedDB cache it emits a hit so the UI can
+// show a "cached · X ago" banner.  When a live response comes in it clears it.
+
+export interface CacheHit { path: string; cachedAt: string }
+let _lastCacheHit: CacheHit | null = null;
+const _cacheListeners = new Set<(hit: CacheHit | null) => void>();
+
+/** Subscribe to cache-hit changes.  Returns an unsubscribe function. */
+export function onCacheHit(fn: (hit: CacheHit | null) => void): () => void {
+  _cacheListeners.add(fn);
+  fn(_lastCacheHit); // fire immediately with current state
+  return () => _cacheListeners.delete(fn);
+}
+
+function _setCacheHit(hit: CacheHit | null) {
+  _lastCacheHit = hit;
+  _cacheListeners.forEach(fn => fn(hit));
+}
+
+// ── fetch helper ─────────────────────────────────────────────────────────────
+
+export async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
+  const isGet = !init?.method || init.method.toUpperCase() === 'GET';
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, init);
+  } catch {
+    // Network-level failure (Mac unreachable, Tailscale off, etc.)
+    // For GET requests try the IndexedDB response cache before giving up.
+    if (isGet) {
+      const cached = await cacheGet<T>(path);
+      if (cached) {
+        _setCacheHit({ path, cachedAt: cached.cachedAt });
+        return cached.data;
+      }
+    }
+    throw new Error(`Failed to fetch — Mac unreachable`);
+  }
   if (!res.ok) {
-    // Try to surface the API's own error message if available
     let detail = '';
     try {
       const body = await res.json() as { error?: string; message?: string };
@@ -41,7 +97,12 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
     } catch { /* ignore parse failure */ }
     throw new Error(detail || `API ${res.status}: ${res.statusText} — ${path}`);
   }
-  return res.json() as Promise<T>;
+  const data = await res.json() as T;
+  // Persist every successful GET response so we can serve it when offline later.
+  if (isGet) void cacheSet(path, data);
+  // Clear any stale-cache banner now that we have fresh data.
+  if (_lastCacheHit) _setCacheHit(null);
+  return data;
 }
 
 export function getStats(): Promise<Stats> {
@@ -144,8 +205,37 @@ export function getArtist(name: string): Promise<ArtistPageData> {
   return fetchJSON(`/api/artist/${encodeURIComponent(name)}`);
 }
 
-export function getNewReleases(limit = 20): Promise<{ items: NewRelease[]; count: number }> {
-  return fetchJSON(`/api/new-releases?limit=${limit}`);
+/**
+ * Fetch the New Releases feed.
+ * @param style Comma-separated style filter, e.g. "House,Deep House,Garage House".
+ *              Each value must be a valid DISCOVERY_STYLES entry (server validates).
+ *              Omit for all styles.
+ */
+export function getNewReleases(limit = 20, style?: string): Promise<NewReleasesResponse> {
+  const p = new URLSearchParams({ limit: String(limit) });
+  if (style) p.set('style', style);
+  return fetchJSON<NewReleasesResponse>(`/api/new-releases?${p}`);
+}
+
+/** Batch price lookup for feed cards. Returns a map keyed by discogs_release_id string. */
+export function getNewReleasePrices(releaseIds: number[]): Promise<{ prices: Record<string, NewReleasePriceEntry> }> {
+  return fetchJSON('/api/new-releases/prices', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ release_ids: releaseIds }),
+  });
+}
+
+export function dismissNewRelease(id: number): Promise<{ ok: boolean }> {
+  return fetchJSON(`/api/new-releases/${id}/dismiss`, { method: 'POST' });
+}
+
+export function undismissNewRelease(id: number): Promise<{ ok: boolean }> {
+  return fetchJSON(`/api/new-releases/${id}/undismiss`, { method: 'POST' });
+}
+
+export function addToWantlistFromFeed(id: number): Promise<{ ok: boolean; in_wantlist: boolean }> {
+  return fetchJSON(`/api/new-releases/${id}/want`, { method: 'POST' });
 }
 
 // Construct artwork URLs from local file paths
@@ -183,4 +273,24 @@ export function searchDiscogsLists(query: string): Promise<{ lists: DiscogsListM
 
 export function loadDiscogsList(id: number): Promise<DiscogsListDetail> {
   return fetchJSON(`/api/discover/list/${id}`);
+}
+
+// ── Pressings ─────────────────────────────────────────────────────────────────
+
+export function getPressings(masterId: number, excludeReleaseId?: number): Promise<PressingResponse> {
+  const qs = excludeReleaseId ? `?exclude_release_id=${excludeReleaseId}` : '';
+  return fetchJSON(`/api/pressings/${masterId}${qs}`);
+}
+
+// ── Store Check ───────────────────────────────────────────────────────────────
+
+export function storeCheck(q: string): Promise<{ results: StoreCheckResult[]; source: string; error?: string }> {
+  return fetchJSON(`/api/store-check?q=${encodeURIComponent(q)}`);
+}
+
+export function bandcampCheck(artist: string, title: string): Promise<BandcampResponse> {
+  const p = new URLSearchParams();
+  if (artist) p.set('artist', artist);
+  if (title)  p.set('title',  title);
+  return fetchJSON(`/api/store-check/bandcamp?${p}`);
 }
