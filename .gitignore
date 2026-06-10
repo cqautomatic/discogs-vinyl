@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.toml
+discogs_config.json
+
+# Build & dist
+dist/
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+.tmp/
+.cache/
