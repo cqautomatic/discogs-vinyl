@@ -19,82 +19,120 @@ SET search_path TO collection_data, public;
 -- TABLES
 -- =====================================================================================
 
-CREATE TABLE IF NOT EXISTS releases (
-    release_id                SERIAL PRIMARY KEY,
-    discogs_id                INTEGER,
-    title                     TEXT NOT NULL,
-    artist                    TEXT,
-    year                      INTEGER,
-    label                     TEXT,
-    catno                     TEXT,
-    format                    TEXT,
-    genres                    JSONB,
-    styles                    JSONB,
-    producers                 JSONB,
-    country                   TEXT,
-    rating                    INTEGER DEFAULT 0,
-    condition                 TEXT,
-    sleeve_condition          TEXT,
-    notes                     TEXT,
-    date_added                TIMESTAMP,
-    copies_count              INTEGER DEFAULT 1,
-    instance_ids              JSONB,
-    community_have_count      INTEGER DEFAULT 0,
-    community_want_count      INTEGER DEFAULT 0,
-    community_average_rating  DECIMAL(3,2) DEFAULT 0.0,
-    community_rating_count    INTEGER DEFAULT 0,
-    stats_last_updated        TIMESTAMP,
-    marketplace_stats         JSONB,
-    artwork_urls              JSONB,
-    local_artwork_paths       JSONB
+CREATE TABLE IF NOT EXISTS collections (
+    collection_id   TEXT PRIMARY KEY,
+    user_id         INTEGER,
+    username        TEXT,
+    collection_name TEXT,
+    total_items     INTEGER,
+    last_updated    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS collections (
-    release_id   INTEGER,
-    instance_id  INTEGER,
-    folder_id    INTEGER,
-    date_added   TIMESTAMP,
-    PRIMARY KEY (release_id, instance_id)
+CREATE TABLE IF NOT EXISTS releases (
+    release_id               TEXT PRIMARY KEY,
+    discogs_id               INTEGER,
+    title                    TEXT NOT NULL,
+    artist                   TEXT,
+    year                     INTEGER,
+    label                    TEXT,
+    catno                    TEXT,
+    format                   TEXT,
+    genres                   JSONB,
+    styles                   JSONB,
+    producers                JSONB,
+    country                  TEXT,
+    rating                   INTEGER DEFAULT 0,
+    condition                TEXT,
+    sleeve_condition         TEXT,
+    notes                    TEXT,
+    date_added               TIMESTAMP,
+    copies_count             INTEGER DEFAULT 1,
+    instance_ids             JSONB,
+    community_have_count     INTEGER DEFAULT 0,
+    community_want_count     INTEGER DEFAULT 0,
+    community_average_rating DECIMAL(3,2) DEFAULT 0.0,
+    community_rating_count   INTEGER DEFAULT 0,
+    stats_last_updated       TIMESTAMP,
+    marketplace_stats        JSONB,
+    artwork_urls             JSONB,
+    local_artwork_paths      JSONB,
+    collection_id            TEXT,
+    basic_information        JSONB,
+    instance_id              INTEGER,
+    folder_id                INTEGER,
+    raw_data                 JSONB,
+    last_updated             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS artists (
-    artist_id   SERIAL PRIMARY KEY,
-    name        TEXT,
-    discogs_id  INTEGER,
-    profile     TEXT,
-    urls        JSONB
+    artist_id           TEXT PRIMARY KEY,
+    artist_name         TEXT,
+    real_name           TEXT,
+    profile             TEXT,
+    discogs_artist_id   INTEGER,
+    images              JSONB,
+    urls                JSONB,
+    members             JSONB,
+    groups              JSONB,
+    aliases             JSONB,
+    raw_data            JSONB,
+    discography         JSONB,
+    discography_updated TIMESTAMP,
+    last_updated        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS artist_discography (
+    discography_id        TEXT PRIMARY KEY,
+    artist_id             TEXT,
+    discogs_artist_id     INTEGER,
+    artist_name           TEXT,
+    release_id            TEXT,
+    discogs_release_id    INTEGER,
+    title                 TEXT,
+    year                  INTEGER,
+    role                  TEXT,
+    label                 TEXT,
+    format                TEXT,
+    country               TEXT,
+    in_collection         BOOLEAN DEFAULT false,
+    collection_release_id TEXT,
+    raw_data              JSONB
 );
 
 CREATE TABLE IF NOT EXISTS labels (
-    label_id      SERIAL PRIMARY KEY,
-    name          TEXT,
-    discogs_id    INTEGER,
-    profile       TEXT,
-    parent_label  TEXT
+    label_id     TEXT PRIMARY KEY,
+    name         TEXT,
+    discogs_id   INTEGER,
+    profile      TEXT,
+    parent_label TEXT,
+    urls         JSONB,
+    raw_data     JSONB
 );
 
 CREATE TABLE IF NOT EXISTS tracks (
-    track_id        SERIAL PRIMARY KEY,
-    release_id      INTEGER REFERENCES releases(release_id) ON DELETE CASCADE,
-    track_number    TEXT,
-    title           TEXT,
-    duration        TEXT,
-    artists         JSONB,
-    extraartists    JSONB,
-    producers       JSONB,
-    raw_track_data  JSONB
+    track_id       TEXT PRIMARY KEY,
+    release_id     TEXT REFERENCES releases(release_id) ON DELETE CASCADE,
+    track_number   TEXT,
+    title          TEXT,
+    duration       TEXT,
+    artists        JSONB,
+    extraartists   JSONB,
+    producers      JSONB,
+    raw_track_data JSONB
 );
 
 CREATE TABLE IF NOT EXISTS artwork (
-    artwork_id           SERIAL PRIMARY KEY,
-    release_id           INTEGER REFERENCES releases(release_id) ON DELETE CASCADE,
-    image_type           TEXT,
-    local_file_path      TEXT,
-    thumbnail_file_path  TEXT,
-    original_url         TEXT,
-    file_size            INTEGER,
-    image_width          INTEGER,
-    image_height         INTEGER
+    artwork_id          TEXT PRIMARY KEY,
+    release_id          TEXT REFERENCES releases(release_id) ON DELETE CASCADE,
+    image_type          TEXT,
+    local_file_path     TEXT,
+    thumbnail_file_path TEXT,
+    original_url        TEXT,
+    file_size           INTEGER,
+    image_width         INTEGER,
+    image_height        INTEGER,
+    file_format         TEXT,
+    download_date       TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS wantlist (
@@ -108,7 +146,12 @@ CREATE TABLE IF NOT EXISTS wantlist (
     styles              JSONB,
     notes               TEXT,
     rating              INTEGER,
-    added               TIMESTAMP
+    added               TIMESTAMP,
+    want_id             INTEGER,
+    username            TEXT,
+    user_id             INTEGER,
+    basic_information   JSONB,
+    raw_data            JSONB
 );
 
 CREATE TABLE IF NOT EXISTS release_prices (
@@ -128,6 +171,14 @@ CREATE TABLE IF NOT EXISTS marketplace_stats_dim (
     currency            VARCHAR(10),
     as_of               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes               TEXT
+);
+
+CREATE TABLE IF NOT EXISTS discogs_catalog_cache (
+    kind       TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    payload    JSONB,
+    fetched_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (kind, key)
 );
 
 -- =====================================================================================
