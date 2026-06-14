@@ -183,9 +183,10 @@ const newReleasesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/new-releases/sync', async (_request, reply) => {
     const scriptDir = path.resolve(process.cwd(), '../../apps/postgres/discogs_collection_postgres_lab');
     const scriptPath = path.join(scriptDir, 'sync_new_releases.py');
+    const pythonPath = process.env.PYTHON_PATH ?? 'python3';
 
     return new Promise((resolve) => {
-      const proc = spawn('/Users/joeyfoley/cursor_1/discogs_project/.venv/bin/python3', [scriptPath], {
+      const proc = spawn(pythonPath, [scriptPath], {
         cwd: scriptDir,
         env: {
           ...process.env,

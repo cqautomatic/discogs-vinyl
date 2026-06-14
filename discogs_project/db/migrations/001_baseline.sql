@@ -151,7 +151,9 @@ CREATE TABLE IF NOT EXISTS wantlist (
     username            TEXT,
     user_id             INTEGER,
     basic_information   JSONB,
-    raw_data            JSONB
+    raw_data            JSONB,
+    community_want_count INTEGER,
+    community_have_count INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS release_prices (
