@@ -160,7 +160,8 @@ CREATE TABLE IF NOT EXISTS release_prices (
     currency            VARCHAR(10),
     num_for_sale        INTEGER,
     availability        BOOLEAN DEFAULT false,
-    last_seen           TIMESTAMP
+    last_seen           TIMESTAMP,
+    source              TEXT
 );
 
 CREATE TABLE IF NOT EXISTS marketplace_stats_dim (
@@ -171,6 +172,14 @@ CREATE TABLE IF NOT EXISTS marketplace_stats_dim (
     currency            VARCHAR(10),
     as_of               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes               TEXT
+);
+
+CREATE TABLE IF NOT EXISTS availability_events (
+    id                  SERIAL PRIMARY KEY,
+    discogs_release_id  INTEGER,
+    from_available      BOOLEAN,
+    to_available        BOOLEAN,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS discogs_catalog_cache (
