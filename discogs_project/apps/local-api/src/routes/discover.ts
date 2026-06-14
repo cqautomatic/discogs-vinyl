@@ -17,8 +17,17 @@ const DISCOGS_HEADERS: Record<string, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function discogsGet(url: string): Promise<unknown> {
   const res = await fetch(url, { headers: DISCOGS_HEADERS });
+  if (res.status === 429) {
+    const wait = parseInt(res.headers.get('Retry-After') ?? '60', 10);
+    await sleep(wait * 1000);
+    return discogsGet(url);
+  }
   if (!res.ok) throw new Error(`Discogs API ${res.status} — ${url}`);
   return res.json();
 }

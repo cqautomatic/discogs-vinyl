@@ -28,6 +28,11 @@ const CACHE_TTL_DAYS = 7;
 
 async function discogsGet(url: string): Promise<unknown> {
   const res = await fetch(url, { headers: DISCOGS_HEADERS });
+  if (res.status === 429) {
+    const wait = parseInt(res.headers.get('Retry-After') ?? '60', 10);
+    await sleep(wait * 1000);
+    return discogsGet(url);
+  }
   if (!res.ok) throw new Error(`Discogs API ${res.status} — ${url}`);
   return res.json();
 }
@@ -36,6 +41,8 @@ async function discogsGet(url: string): Promise<unknown> {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+const MAX_PAGES = 5; // Cap pagination to avoid rate limits on huge catalogs
 
 /** Read from cache. Returns payload if fresh, null if missing/stale. */
 async function cacheGet(kind: string, key: string): Promise<unknown | null> {
@@ -59,13 +66,13 @@ async function cacheSet(kind: string, key: string, payload: unknown): Promise<vo
   );
 }
 
-/** Fetch all pages from a paginated Discogs endpoint, 1 req/sec. */
-async function fetchAllPages(firstUrl: string): Promise<unknown[]> {
+/** Fetch pages from a paginated Discogs endpoint, 1 req/sec, capped at MAX_PAGES. */
+async function fetchAllPages(firstUrl: string, maxPages: number = MAX_PAGES): Promise<unknown[]> {
   const items: unknown[] = [];
   let url: string | null = firstUrl;
   let page = 1;
 
-  while (url) {
+  while (url && page <= maxPages) {
     if (page > 1) await sleep(1000);
     const data = await discogsGet(url) as Record<string, unknown>;
 
