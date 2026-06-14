@@ -29,6 +29,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Artwork (downloaded images)
+artwork/
+
 # Temporary
 .tmp/
 .cache/
