@@ -214,20 +214,22 @@ const findRoutes: FastifyPluginAsync = async (fastify) => {
     const ownedIds = await getOwnedIds();
 
     // Filter and shape
+    // Label releases use stats.community.in_wantlist/in_collection
     const gaps = (allReleases as Array<Record<string, unknown>>)
       .filter((rel) => {
         const id = Number(rel.id);
         if (ownedIds.has(id)) return false;
-        const community = rel.community as Record<string, unknown> | undefined;
-        const want = Number(community?.want ?? 0);
-        const have = Number(community?.have ?? 0);
-        const ratio = have > 0 ? want / have : 0;
-        return ratio > 1.0 && want > 150;
+        const stats = rel.stats as Record<string, unknown> | undefined;
+        const community = (stats?.community ?? rel.community) as Record<string, unknown> | undefined;
+        const want = Number(community?.in_wantlist ?? community?.want ?? 0);
+        const have = Number(community?.in_collection ?? community?.have ?? 0);
+        return want > 0;
       })
       .map((rel) => {
-        const community = rel.community as Record<string, unknown> | undefined;
-        const want = Number(community?.want ?? 0);
-        const have = Number(community?.have ?? 0);
+        const stats = rel.stats as Record<string, unknown> | undefined;
+        const community = (stats?.community ?? rel.community) as Record<string, unknown> | undefined;
+        const want = Number(community?.in_wantlist ?? community?.want ?? 0);
+        const have = Number(community?.in_collection ?? community?.have ?? 0);
         return {
           discogs_id: Number(rel.id),
           title: rel.title as string,
