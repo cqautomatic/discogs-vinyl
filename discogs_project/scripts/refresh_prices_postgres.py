@@ -6,9 +6,14 @@ Requires:
 """
 
 import os
+import sys
 import time
-import requests
 import psycopg2
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from lib.discogs_api import DiscogsClient
+
+_client = DiscogsClient()
 
 
 def get_db():
@@ -21,23 +26,7 @@ def get_db():
     )
 
 
-def fetch_marketplace_release(release_id: int, token: str):
-    url = f"https://api.discogs.com/marketplace/stats/{release_id}"
-    headers = {
-        'User-Agent': 'DiscogsPricing/1.0',
-        'Authorization': f'Discogs token={token}'
-    }
-    r = requests.get(url, headers=headers, timeout=20)
-    if r.status_code == 200:
-        return r.json()
-    elif r.status_code == 404:
-        return None
-    else:
-        raise RuntimeError(f"Discogs API error {r.status_code}: {r.text}")
-
-
 def refresh_prices(batch_limit: int = None):
-    token = os.environ['DISCOGS_TOKEN']
     conn = get_db()
     conn.autocommit = False
     try:
@@ -75,9 +64,7 @@ def refresh_prices(batch_limit: int = None):
             processed_count += 1
             print(f"Processing release {processed_count}/{total_releases} (ID: {rid})")
             try:
-                data = fetch_marketplace_release(rid, token)
-                # Rate limiting: wait 1 second between successful API calls
-                time.sleep(1)
+                data = _client.marketplace_stats(rid)
             except Exception as e:
                 print(f"Error fetching data for release {rid}: {e}")
                 # backoff on rate limiting - longer delay for errors

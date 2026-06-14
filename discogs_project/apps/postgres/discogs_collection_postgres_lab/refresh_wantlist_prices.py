@@ -5,19 +5,20 @@ Refresh pricing data specifically for wantlist items.
 
 import sys
 import os
-import time
-import requests
 import psycopg2
 import psycopg2.extras
 import toml
 
-sys.path.append('.')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from lib.discogs_api import DiscogsClient
+
+_client = DiscogsClient()
 
 def connect_database():
     """Connect to PostgreSQL using secrets.toml."""
     secrets = toml.load('.streamlit/secrets.toml')
     pg_config = secrets['postgres']
-    
+
     return psycopg2.connect(
         host=pg_config['host'],
         port=pg_config['port'],
@@ -27,42 +28,8 @@ def connect_database():
         cursor_factory=psycopg2.extras.RealDictCursor
     )
 
-def get_discogs_token():
-    """Get Discogs token from secrets."""
-    secrets = toml.load('.streamlit/secrets.toml')
-    return secrets['discogs']['token']
-
-def fetch_marketplace_stats(release_id: int, token: str):
-    """Fetch marketplace statistics from Discogs API."""
-    url = f"https://api.discogs.com/marketplace/stats/{release_id}"
-    headers = {
-        'User-Agent': 'DiscogsWantlistPricing/1.0',
-        'Authorization': f'Discogs token={token}'
-    }
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=20)
-        
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            print(f"  No marketplace data for release {release_id}")
-            return None
-        elif response.status_code == 429:
-            print(f"  Rate limited, waiting 60 seconds...")
-            time.sleep(60)
-            return fetch_marketplace_stats(release_id, token)  # Retry
-        else:
-            print(f"  API error {response.status_code}: {response.text}")
-            return None
-            
-    except Exception as e:
-        print(f"  Request failed for release {release_id}: {e}")
-        return None
-
 def refresh_wantlist_prices(batch_limit: int = 50):
     """Refresh pricing data for wantlist items."""
-    token = get_discogs_token()
     conn = connect_database()
     
     try:
@@ -100,7 +67,7 @@ def refresh_wantlist_prices(batch_limit: int = 50):
             print(f"  {i}/{len(candidates)}: {title}")
             
             # Fetch pricing data from Discogs API
-            pricing_data = fetch_marketplace_stats(release_id, token)
+            pricing_data = _client.marketplace_stats(release_id)
             
             if pricing_data:
                 lowest = pricing_data.get('lowest_price')
@@ -164,9 +131,6 @@ def refresh_wantlist_prices(batch_limit: int = 50):
                 """, (release_id,))
                 conn.commit()
             
-            # Rate limiting - be nice to Discogs API
-            time.sleep(1)
-        
         print(f"\n🎉 Pricing refresh complete!")
         print(f"   Successfully updated: {successful_updates}/{len(candidates)} items")
         

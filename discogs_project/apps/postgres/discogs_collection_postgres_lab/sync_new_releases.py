@@ -8,26 +8,22 @@ Usage:
 """
 
 import os
+import sys
 import json
-import time
 from urllib.parse import quote
 
-import requests
 import psycopg2
 
-DISCOGS_TOKEN    = os.environ["DISCOGS_TOKEN"]
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from lib.discogs_api import DiscogsClient
+
 POSTGRES_HOST    = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT    = int(os.getenv("POSTGRES_PORT", "5432"))
 POSTGRES_USER    = os.getenv("POSTGRES_USER", "discogs_user")
 POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 POSTGRES_DATABASE = os.getenv("POSTGRES_DATABASE", "discogs_collection")
 
-HEADERS = {
-    "Authorization": f"Discogs token={DISCOGS_TOKEN}",
-    "User-Agent": "DiscogsCollectionApp/1.0",
-}
-
-RATE_DELAY = 1.1   # seconds between API calls
+_client = DiscogsClient(rate_delay=1.1)
 
 # Load discovery styles from the shared config (single source of truth)
 _STYLES_CONFIG = os.path.join(os.path.dirname(__file__), "../../../config/discovery-styles.json")
@@ -39,20 +35,7 @@ WANTED_STYLES = {s.lower() for s in DISCOVERY_STYLES}
 
 
 def search_discogs(params: dict) -> list:
-    url = "https://api.discogs.com/database/search"
-    try:
-        resp = requests.get(
-            url, headers=HEADERS,
-            params={**params, "per_page": 25, "type": "release", "format": "Vinyl"},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        return resp.json().get("results", [])
-    except requests.exceptions.RequestException as exc:
-        print(f"  API error: {exc}")
-        return []
-    finally:
-        time.sleep(RATE_DELAY)
+    return _client.search(**params, per_page=25, type="release", format="Vinyl")
 
 
 def insert_result(cur, result: dict, owned_ids: set, owned_master_ids: set, source: str, bypass_genre_filter: bool = False) -> tuple[int, int]:

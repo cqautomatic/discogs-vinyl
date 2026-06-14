@@ -2,11 +2,12 @@
 """Fast bulk import — uses only collection pages (1 API call per 50 releases).
 Skips artist details, marketplace stats, and artwork for speed."""
 
-import os, json, time, requests, psycopg2, psycopg2.extras
+import os, sys, json, psycopg2, psycopg2.extras
 
-TOKEN = os.environ['DISCOGS_TOKEN']
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from lib.discogs_api import DiscogsClient
+
 USERNAME = os.environ.get('DISCOGS_USERNAME', '')
-HEADERS = {'Authorization': f'Discogs token={TOKEN}', 'User-Agent': 'DiscogsCollectionApp/1.0'}
 
 def pg_connect():
     conn = psycopg2.connect(
@@ -22,17 +23,6 @@ def pg_connect():
     conn.commit()
     return conn
 
-def discogs_get(url):
-    while True:
-        r = requests.get(url, headers=HEADERS)
-        if r.status_code == 429:
-            wait = int(r.headers.get('Retry-After', 60))
-            print(f"  Rate limited, waiting {wait}s...")
-            time.sleep(wait)
-            continue
-        r.raise_for_status()
-        return r.json()
-
 def safe_join(items, field='name'):
     if not items: return ''
     try:
@@ -45,14 +35,13 @@ def safe_list(val):
     return []
 
 def main():
-    if not USERNAME:
-        identity = discogs_get('https://api.discogs.com/oauth/identity')
-        username = identity['username']
-        user_id = identity['id']
-    else:
-        username = USERNAME
-        identity = discogs_get('https://api.discogs.com/oauth/identity')
-        user_id = identity['id']
+    client = DiscogsClient()
+    identity = client.identity()
+    if not identity:
+        print("Failed to authenticate with Discogs API")
+        sys.exit(1)
+    username = USERNAME or identity['username']
+    user_id = identity['id']
 
     conn = pg_connect()
     collection_id = f"collection_{user_id}"
@@ -71,9 +60,11 @@ def main():
     imported = 0
 
     while True:
-        url = f'https://api.discogs.com/users/{username}/collection/folders/0/releases?page={page}&per_page=100&sort=added&sort_order=desc'
         print(f"Fetching page {page}...")
-        data = discogs_get(url)
+        data = client.collection_page(username, page=page)
+        if not data:
+            print("Failed to fetch collection page")
+            break
 
         if page == 1:
             total = data['pagination']['items']
@@ -164,7 +155,6 @@ def main():
         if data['pagination']['page'] >= data['pagination']['pages']:
             break
         page += 1
-        time.sleep(1)  # gentle rate limiting
 
     print(f"\nDone! {imported} releases imported.")
     conn.close()

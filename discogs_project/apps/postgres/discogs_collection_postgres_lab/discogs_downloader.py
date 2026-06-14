@@ -13,6 +13,9 @@ import hashlib
 import requests
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from lib.discogs_api import DiscogsClient
 from datetime import datetime
 from dataclasses import dataclass, asdict
 import psycopg2
@@ -207,137 +210,66 @@ class DiscogsConfig:
     rate_limit_delay: float = 1.0  # Seconds between API calls
 
 class DiscogsAPI:
-    """Wrapper for Discogs API interactions."""
-    
+    """Wrapper for Discogs API interactions. Delegates to shared DiscogsClient."""
+
     def __init__(self, token: str, user_agent: str, rate_limit_delay: float = 1.0):
         self.token = token
         self.user_agent = user_agent
-        self.rate_limit_delay = rate_limit_delay
-        self.base_url = "https://api.discogs.com"
-        self.session = requests.Session()
-        self.session.headers.update({
-            'Authorization': f'Discogs token={token}',
-            'User-Agent': user_agent
-        })
-        self.last_request_time = 0
-    
-    def _rate_limit(self):
-        """Implement rate limiting to respect Discogs API limits."""
-        elapsed = time.time() - self.last_request_time
-        if elapsed < self.rate_limit_delay:
-            time.sleep(self.rate_limit_delay - elapsed)
-        self.last_request_time = time.time()
-    
+        self._client = DiscogsClient(
+            token=token, user_agent=user_agent, rate_delay=rate_limit_delay
+        )
+
     def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict]:
-        """Make a rate-limited request to the Discogs API."""
-        self._rate_limit()
-        
-        try:
-            url = f"{self.base_url}{endpoint}"
-            response = self.session.get(url, params=params)
-            
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:
-                logger.warning("Rate limit exceeded, waiting 60 seconds...")
-                time.sleep(60)
-                return self._make_request(endpoint, params)
-            else:
-                logger.error(f"API request failed: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error making request to {endpoint}: {e}")
-            return None
-    
+        return self._client.get(endpoint, **(params or {}))
+
     def get_user_identity(self) -> Optional[Dict]:
-        """Get the authenticated user's identity."""
-        return self._make_request("/oauth/identity")
-    
+        return self._client.identity()
+
     def get_user_collection(self, username: str, page: int = 1, per_page: int = 100) -> Optional[Dict]:
-        """Get user's collection with pagination."""
-        return self._make_request(f"/users/{username}/collection/folders/0/releases", {
-            'page': page,
-            'per_page': per_page
-        })
-    
+        return self._client.collection_page(username, page=page, per_page=per_page)
+
     def get_release_details(self, release_id: int) -> Optional[Dict]:
-        """Get detailed information about a specific release."""
-        return self._make_request(f"/releases/{release_id}")
-    
+        return self._client.release(release_id)
+
     def get_release_statistics(self, release_id: int) -> Optional[Dict]:
-        """Get release statistics including have/want counts, ratings, and marketplace data.
-        
-        Note: Historical sales data (last sold date, high/low sale prices) is not available
-        via public API. Only current marketplace listings are accessible.
-        """
-        try:
-            # Get basic release info with community stats
-            release_data = self.get_release_details(release_id)
-            if not release_data:
-                return None
-            
-            # Extract community statistics
-            community = release_data.get('community', {})
-            rating_data = community.get('rating', {})
-            
-            stats = {
-                'have_count': community.get('have', 0),
-                'want_count': community.get('want', 0),
-                'rating_count': rating_data.get('count', 0),
-                'average_rating': rating_data.get('average', 0.0),
-                'community_status': community.get('status', 'Unknown'),
-                'data_quality': community.get('data_quality', 'Unknown'),
-                'contributors_count': len(community.get('contributors', [])),
-                'marketplace_stats': {}
-            }
-            
-            # Get marketplace statistics
-            try:
-                marketplace_data = self._make_request(f"/marketplace/stats/{release_id}")
-                if marketplace_data:
-                    stats['marketplace_stats'] = {
-                        'num_for_sale': marketplace_data.get('num_for_sale', 0),
-                        'lowest_price': marketplace_data.get('lowest_price', {}),
-                        'blocked_from_sale': marketplace_data.get('blocked_from_sale', False)
-                    }
-            except Exception as e:
-                logger.debug(f"Could not fetch marketplace stats for release {release_id}: {e}")
-                stats['marketplace_stats'] = {}
-            
-            return stats
-            
-        except Exception as e:
-            logger.error(f"Error fetching release statistics for {release_id}: {e}")
+        release_data = self.get_release_details(release_id)
+        if not release_data:
             return None
+        community = release_data.get('community', {})
+        rating_data = community.get('rating', {})
+        stats = {
+            'have_count': community.get('have', 0),
+            'want_count': community.get('want', 0),
+            'rating_count': rating_data.get('count', 0),
+            'average_rating': rating_data.get('average', 0.0),
+            'community_status': community.get('status', 'Unknown'),
+            'data_quality': community.get('data_quality', 'Unknown'),
+            'contributors_count': len(community.get('contributors', [])),
+            'marketplace_stats': {}
+        }
+        marketplace_data = self._client.marketplace_stats(release_id)
+        if marketplace_data:
+            stats['marketplace_stats'] = {
+                'num_for_sale': marketplace_data.get('num_for_sale', 0),
+                'lowest_price': marketplace_data.get('lowest_price', {}),
+                'blocked_from_sale': marketplace_data.get('blocked_from_sale', False)
+            }
+        return stats
 
     def get_marketplace_stats(self, release_id: int) -> Optional[Dict]:
-        """Get current marketplace stats for a release (for sale count, lowest listing price).
+        return self._client.marketplace_stats(release_id)
 
-        Note: Historical sales (last sold date, high/low sold prices) are not available via public API.
-        """
-        try:
-            data = self._make_request(f"/marketplace/stats/{release_id}")
-            return data
-        except Exception as e:
-            logger.debug(f"Could not fetch marketplace stats for release {release_id}: {e}")
-            return None
-    
     def get_master_release(self, master_id: int) -> Optional[Dict]:
-        """Get master release information."""
-        return self._make_request(f"/masters/{master_id}")
-    
+        return self._client.master(master_id)
+
     def get_artist_details(self, artist_id: int) -> Optional[Dict]:
-        """Get detailed artist information."""
-        return self._make_request(f"/artists/{artist_id}")
-    
+        return self._client.artist(artist_id)
+
     def get_label_details(self, label_id: int) -> Optional[Dict]:
-        """Get detailed label information."""
-        return self._make_request(f"/labels/{label_id}")
+        return self._client.label(label_id)
 
     def get_user_wantlist(self, username: str, page: int = 1, per_page: int = 100) -> Optional[Dict]:
-        """Get user's wantlist (wishlist)."""
-        return self._make_request(f"/users/{username}/wants", {'page': page, 'per_page': per_page})
+        return self._client.wantlist_page(username, page=page, per_page=per_page)
 
 class ArtworkDownloader:
     """Handles downloading and managing artwork files with robust retry logic."""
